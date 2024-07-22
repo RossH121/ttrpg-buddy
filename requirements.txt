@@ -1,2 +1,4 @@
 streamlit
 openai
+pinecone-client 
+pinecone-plugin-assistant
