@@ -34,7 +34,7 @@ def main():
         st.error("Assistant not initialized. Chat functionality is unavailable.")
 
     # Account settings
-    handle_account_settings(authenticator, config)
+    handle_account_settings(authenticator)
 
     # Saving config file
     with open('config.yaml', 'w') as file:

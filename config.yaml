@@ -24,4 +24,3 @@ credentials:
       password: $2b$12$I2sycvc0T5sXZ6W/1c81l.BaeneYBRd9UsNGz2RSMc8ykWYNbdmEK
 pre-authorized:
   emails:
-  - melsby@gmail.com
