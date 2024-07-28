@@ -1,4 +1,5 @@
 streamlit
+streamlit-authenticator
 openai
 pinecone-client 
 pinecone-plugin-assistant
