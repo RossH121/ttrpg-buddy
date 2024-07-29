@@ -1,3 +1,4 @@
+# streamlit_app.py
 import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
@@ -16,22 +17,23 @@ def main():
     authenticator = initialize_auth(config)
 
     # Handle authentication
-    if not handle_authentication(authenticator):
+    username = handle_authentication(authenticator)
+    if not username:
         return
 
     # Initialize Pinecone and get the assistant
     pinecone_instance = initialize_pinecone()
-    assistant = get_assistant(pinecone_instance) if pinecone_instance else None
+    assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
+
+    # Main area
+    if assistant:
+        chat_interface(assistant, username)
+    else:
+        st.error("Assistant not initialized. Chat functionality is unavailable.")
 
     # Sidebar
     with st.sidebar:
         file_management_sidebar(assistant)
-
-    # Main area
-    if assistant:
-        chat_interface(assistant)
-    else:
-        st.error("Assistant not initialized. Chat functionality is unavailable.")
 
     # Account settings
     handle_account_settings(authenticator)

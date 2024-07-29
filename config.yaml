@@ -5,21 +5,24 @@ cookie:
 credentials:
   usernames:
     cheubner:
+      assistant: ttrpg-buddy-cullen
       email: cheubner@gmail.com
       failed_login_attempts: 0
       logged_in: false
       name: Cullen Heubner
       password: $2b$12$Gl3btbNT9UDOGb8LeTuVvORkGHrJa7gePQycgUxDz8cZX29BMizvK
     kheubner:
+      assistant: ttrpg-buddy-keel
       email: klhbnr@gmail.com
       failed_login_attempts: 0
       logged_in: false
       name: Keel Heubner
       password: $2b$12$9xyk1hU4qSrvURAb3VpAfep07GwJT70/MTJpKM6jurRBvEUy0awES
     rheubner:
+      assistant: dnd5e-assistant
       email: ross.heubner@gmail.com
       failed_login_attempts: 0
-      logged_in: false
+      logged_in: true
       name: Ross Heubner
       password: $2b$12$I2sycvc0T5sXZ6W/1c81l.BaeneYBRd9UsNGz2RSMc8ykWYNbdmEK
 pre-authorized:

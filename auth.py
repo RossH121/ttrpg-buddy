@@ -12,13 +12,16 @@ def initialize_auth(config):
 
 def handle_authentication(authenticator):
     if not st.session_state.get("authentication_status"):
-        authenticator.login()
-        if st.session_state.get("authentication_status") is False:
+        name, authentication_status, username = authenticator.login()
+        if authentication_status is False:
             st.error('Username/password is incorrect')
-        elif st.session_state.get("authentication_status") is None:
+        elif authentication_status is None:
             st.warning('Please enter your username and password')
-        return False
-    return True
+        else:
+            return username
+    else:
+        return st.session_state.get("username")
+    return None
 
 def handle_account_settings(authenticator):
     with st.sidebar:
