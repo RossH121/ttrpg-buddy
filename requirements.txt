@@ -5,3 +5,4 @@ pinecone-client
 pinecone-plugin-assistant
 pyyaml
 pymongo
+requests
