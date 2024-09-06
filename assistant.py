@@ -119,10 +119,10 @@ def chat_interface(assistant, username):
                 st.session_state.messages = get_conversation(username, conv_id)
                 st.rerun()
             
-            if col2.button("Rename", key=f"rename_{conv_id}"):
+            if col2.button("✏️ Rename", key=f"rename_{conv_id}"):
                 st.session_state.renaming_conversation = conv_id
             
-            if col3.button("Delete", key=f"delete_{conv_id}"):
+            if col3.button("🗑️ Delete", key=f"delete_{conv_id}"):
                 st.session_state.deleting_conversation = conv_id
 
         # Handle renaming

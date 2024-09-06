@@ -19,7 +19,7 @@ def file_management_sidebar(assistant):
             for file in files:
                 col1, col2 = st.columns([3, 1])
                 col1.write(f"{file.get('name', 'Unknown')}")
-                if col2.button("Delete", key=file.get('id')):
+                if col2.button("🗑️ Delete", key=file.get('id')):
                     if delete_file(assistant, file.get('id')):
                         st.success(f"Deleted {file.get('name', 'Unknown')}")
                         st.rerun()
