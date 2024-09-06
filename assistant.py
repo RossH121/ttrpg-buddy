@@ -145,7 +145,7 @@ def chat_interface(assistant, username):
     display_current_conversation(conversations)
 
     # Display chat messages
-    display_chat_messages()
+    display_chat_messages(username)
 
     # Chat input
     handle_chat_input(assistant, username)
@@ -190,15 +190,15 @@ def display_current_conversation(conversations):
     if current_conv:
         st.header(current_conv.get("name", f"Conversation {current_conv['created_at'].strftime('%Y-%m-%d %H:%M')}"))
 
-def display_chat_messages():
+def display_chat_messages(username):
     for idx, message in enumerate(st.session_state.messages):
         with st.chat_message(message["role"]):
             if st.session_state.editing_message_index == idx:
-                edit_message(idx, message)
+                edit_message(username, idx, message)
             else:
-                display_message(idx, message)
+                display_message(username, idx, message)
 
-def display_message(idx, message):
+def display_message(username, idx, message):
     st.markdown(message["content"])
     if message["role"] == "assistant":
         if st.button("Edit", key=f"edit_{idx}"):
@@ -206,7 +206,7 @@ def display_message(idx, message):
             st.session_state.original_message_content = message["content"]
             st.rerun()
 
-def edit_message(idx, message):
+def edit_message(username, idx, message):
     edited_content = st.text_area("Edit message", value=message["content"], key=f"edit_area_{idx}")
     col1, col2 = st.columns(2)
     if col1.button("Save", key=f"save_{idx}"):
