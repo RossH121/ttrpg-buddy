@@ -95,6 +95,10 @@ def chat_interface(assistant, username):
         st.session_state.renaming_conversation = None
     if "deleting_conversation" not in st.session_state:
         st.session_state.deleting_conversation = None
+    if "editing_message_index" not in st.session_state:
+        st.session_state.editing_message_index = None
+    if "original_message_content" not in st.session_state:
+        st.session_state.original_message_content = None
 
     # Get all conversations for the sidebar
     conversations = get_all_conversations(username)
@@ -187,9 +191,33 @@ def display_current_conversation(conversations):
         st.header(current_conv.get("name", f"Conversation {current_conv['created_at'].strftime('%Y-%m-%d %H:%M')}"))
 
 def display_chat_messages():
-    for message in st.session_state.messages:
+    for idx, message in enumerate(st.session_state.messages):
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            if st.session_state.editing_message_index == idx:
+                edit_message(idx, message)
+            else:
+                display_message(idx, message)
+
+def display_message(idx, message):
+    st.markdown(message["content"])
+    if message["role"] == "assistant":
+        if st.button("Edit", key=f"edit_{idx}"):
+            st.session_state.editing_message_index = idx
+            st.session_state.original_message_content = message["content"]
+            st.rerun()
+
+def edit_message(idx, message):
+    edited_content = st.text_area("Edit message", value=message["content"], key=f"edit_area_{idx}")
+    col1, col2 = st.columns(2)
+    if col1.button("Save", key=f"save_{idx}"):
+        st.session_state.messages[idx]["content"] = edited_content
+        st.session_state.messages[idx]["edited"] = True
+        save_conversation(username, st.session_state.current_conversation_id, st.session_state.messages)
+        st.session_state.editing_message_index = None
+        st.rerun()
+    if col2.button("Cancel", key=f"cancel_{idx}"):
+        st.session_state.editing_message_index = None
+        st.rerun()
 
 def handle_chat_input(assistant, username):
     if prompt := st.chat_input("What would you like to know about?"):

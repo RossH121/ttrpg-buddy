@@ -34,6 +34,20 @@ def save_conversation(username, conversation_id, messages):
         upsert=True
     )
 
+def update_message(username, conversation_id, message_index, new_content):
+    collection = get_chat_history_collection()
+    result = collection.update_one(
+        {"username": username, "conversation_id": conversation_id},
+        {
+            "$set": {
+                f"messages.{message_index}.content": new_content,
+                f"messages.{message_index}.edited": True,
+                "last_updated": datetime.utcnow()
+            }
+        }
+    )
+    return result.modified_count > 0
+
 def get_conversation(username, conversation_id):
     collection = get_chat_history_collection()
     result = collection.find_one({"username": username, "conversation_id": conversation_id})
