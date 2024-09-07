@@ -7,7 +7,7 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_battlemap
+from image_generator import generate_battlemaps
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -80,9 +80,9 @@ def cleanup_response(response):
     return cleaned
 
 def generate_battlemap_from_context(messages):
-    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
+    context = " ".join([m["content"] for m in messages[-1:]])
     prompt = f"Based on this context, create a battlemap: {context}"
-    return generate_battlemap(prompt)
+    return generate_battlemaps(prompt)
 
 def chat_interface(assistant, username):
     # Initialize session state variables
