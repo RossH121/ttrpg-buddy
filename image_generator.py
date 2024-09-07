@@ -18,7 +18,7 @@ def initialize_openai():
         st.error(f"Error initializing OpenAI client: {str(e)}")
         return None
 
-def generate_battlemap(prompt):
+def generate_battlemaps(prompt):
     client = initialize_openai()
     if not client:
         return None
@@ -34,15 +34,18 @@ def generate_battlemap(prompt):
         )
         summarized_prompt = summary_response.choices[0].message.content
 
-        # Now use the summarized prompt to generate the image
-        image_response = client.images.generate(
-            model="dall-e-3",
-            prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}",
-            size="1024x1024",
-            quality="hd",
-            n=1
-        )
-        return image_response.data[0].url
+        # Now use the summarized prompt to generate 4 images
+        image_urls = []
+        for _ in range(4):
+            image_response = client.images.generate(
+                model="dall-e-3",
+                prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}",
+                size="1024x1024",
+                quality="hd",
+                n=1
+            )
+            image_urls.append(image_response.data[0].url)
+        return image_urls
     except Exception as e:
-        st.error(f"Error generating image: {str(e)}")
+        st.error(f"Error generating images: {str(e)}")
         return None
