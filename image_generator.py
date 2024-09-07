@@ -39,7 +39,7 @@ def generate_battlemap(prompt):
             model="dall-e-3",
             prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}",
             size="1024x1024",
-            quality="standard",
+            quality="hd",
             n=1
         )
         return image_response.data[0].url
