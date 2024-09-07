@@ -7,7 +7,7 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_battlemaps
+from image_generator import generate_optimized_prompt, generate_images_from_prompt
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
