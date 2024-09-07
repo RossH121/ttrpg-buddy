@@ -3,6 +3,7 @@ import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
 from auth import initialize_auth, handle_authentication, handle_account_settings
+from assistant import initialize_pinecone, get_assistant
 
 st.set_page_config(
     page_title="TTRPG Buddy",
@@ -23,6 +24,10 @@ def main():
     username = handle_authentication(authenticator)
     if not username:
         return
+
+    # Initialize Pinecone and get the assistant
+    pinecone_instance = initialize_pinecone()
+    assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
 
     # Main content
     st.header("Welcome to TTRPG Buddy")
