@@ -46,7 +46,7 @@ def generate_images_from_prompt(optimized_prompt):
         for i in range(4):
             image_response = client.images.generate(
                 model="dall-e-3",
-                prompt=f"{optimized_prompt} Ensure this is a top-down view. Variation {i+1}",
+                prompt=f"{optimized_prompt}",
                 size="1024x1024",
                 quality="standard",
                 n=1
