@@ -7,7 +7,7 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_optimized_prompt, generate_images_from_prompt
+from image_generator import generate_optimized_prompt, generate_images_from_prompt, generate_topdown_image_from_context
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -84,6 +84,25 @@ def generate_topdown_image_from_context(messages):
     prompt = f"Based on this context, create a detailed top-down view image: {context}"
     return generate_optimized_prompt(prompt)
 
+def generate_character_image_from_context(messages):
+    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
+    prompt = f"""Based on the following context, create a detailed prompt for generating a character portrait image:
+
+Context: {context}
+
+Your prompt should include:
+1. Character's race and class (if applicable)
+2. Physical appearance (face, body type, hair, eyes, skin)
+3. Clothing and armor
+4. Weapons or magical items they might be holding
+5. Character's expression and pose
+6. Any distinctive features or accessories
+7. Background or environment hints (if relevant)
+
+Aim for a vivid, detailed description in about 75-100 words, focusing on visual elements that would make for an interesting and unique character portrait."""
+
+    return generate_optimized_prompt(prompt, is_character=True)
+
 def chat_interface(assistant, username):
     # Initialize session state variables
     if "current_conversation_id" not in st.session_state:
@@ -152,33 +171,51 @@ def chat_interface(assistant, username):
     current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
 
     # Add an expander for image generation features
-    with st.expander("Image Generation", expanded=current_conv_state["optimized_prompt"] is not None):
-        if st.button("Generate Top-Down View Prompt"):
-            with st.spinner("Generating optimized prompt..."):
+    with st.expander("Image Generation", expanded=current_conv_state.get("optimized_prompt") is not None or current_conv_state.get("character_prompt") is not None):
+        col1, col2 = st.columns(2)
+        
+        if col1.button("Generate Top-Down View Prompt"):
+            with st.spinner("Generating optimized prompt for map..."):
                 optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
                 if optimized_prompt:
                     current_conv_state["optimized_prompt"] = optimized_prompt
-                    st.success("Optimized prompt generated!")
+                    current_conv_state["prompt_type"] = "map"
+                    st.success("Optimized prompt for map generated!")
                 else:
-                    st.error("Failed to generate optimized prompt.")
+                    st.error("Failed to generate optimized prompt for map.")
+
+        if col2.button("Generate Character Prompt"):
+            with st.spinner("Generating optimized prompt for character..."):
+                character_prompt = generate_character_image_from_context(st.session_state.messages)
+                if character_prompt:
+                    current_conv_state["character_prompt"] = character_prompt
+                    current_conv_state["prompt_type"] = "character"
+                    st.success("Optimized prompt for character generated!")
+                else:
+                    st.error("Failed to generate optimized prompt for character.")
 
         # Display and allow editing of the optimized prompt
-        if current_conv_state["optimized_prompt"]:
+        if current_conv_state.get("optimized_prompt") or current_conv_state.get("character_prompt"):
+            prompt_type = current_conv_state.get("prompt_type", "map")
+            prompt_key = "optimized_prompt" if prompt_type == "map" else "character_prompt"
+            prompt_title = "Edit the optimized prompt for map:" if prompt_type == "map" else "Edit the optimized prompt for character:"
+            
             col1, col2 = st.columns([5, 1])
-            edited_prompt = col1.text_area("Edit the optimized prompt:", value=current_conv_state["optimized_prompt"], height=100)
+            edited_prompt = col1.text_area(prompt_title, value=current_conv_state[prompt_key], height=100)
             if col2.button("Close"):
-                current_conv_state["optimized_prompt"] = None
+                current_conv_state[prompt_key] = None
+                current_conv_state["prompt_type"] = None
                 st.rerun()
             
-            if st.button("Generate Images"):
-                with st.spinner("Generating top-down view images..."):
+            if st.button(f"Generate {prompt_type.capitalize()} Images"):
+                with st.spinner(f"Generating {prompt_type} images..."):
                     image_urls = generate_images_from_prompt(edited_prompt)
                     if image_urls:
                         for i, url in enumerate(image_urls, 1):
-                            st.image(url, caption=f"Generated Top-Down View {i}")
-                            st.markdown(f"[Download Image {i}]({url})")
+                            st.image(url, caption=f"Generated {prompt_type.capitalize()} {i}")
+                            st.markdown(f"[Download {prompt_type.capitalize()} Image {i}]({url})")
                     else:
-                        st.error("Failed to generate top-down view images.")
+                        st.error(f"Failed to generate {prompt_type} images.")
 
     # Chat input
     handle_chat_input(assistant, username)

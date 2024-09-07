@@ -18,17 +18,19 @@ def initialize_openai():
         st.error(f"Error initializing OpenAI client: {str(e)}")
         return None
 
-def generate_optimized_prompt(prompt):
+def generate_optimized_prompt(prompt, is_character=False):
     client = initialize_openai()
     if not client:
         return None
 
     try:
+        system_content = "You are an expert at creating perfect prompts for text-to-image AI. Your task is to create a detailed, vivid prompt for generating a top-down view image. Focus on describing the scene, layout, objects, colors, and atmosphere. Do not mention 'battle map' or 'RPG' explicitly. Aim for a 50-75 word description." if not is_character else "You are an expert at creating perfect prompts for text-to-image AI. Your task is to create a detailed, vivid prompt for generating a character portrait. Focus on describing the character's appearance, clothing, pose, expression, and any notable features or items. Aim for a 75-100 word description."
+        
         prompt_response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are an expert at creating perfect prompts for text-to-image AI. Your task is to create a detailed, vivid prompt for generating a top-down view image. Focus on describing the scene, layout, objects, colors, and atmosphere. Do not mention 'battle map' or 'RPG' explicitly. Aim for a 50-75 word description."},
-                {"role": "user", "content": f"Create an optimal text-to-image prompt for a top-down view based on this description: {prompt}"}
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": f"Create an optimal text-to-image prompt based on this description: {prompt}"}
             ]
         )
         return prompt_response.choices[0].message.content
