@@ -96,8 +96,8 @@ def chat_interface(assistant, username):
         st.session_state.editing_message_index = None
     if "original_message_content" not in st.session_state:
         st.session_state.original_message_content = None
-    if "optimized_prompt" not in st.session_state:
-        st.session_state.optimized_prompt = None
+    if "conversations" not in st.session_state:
+        st.session_state.conversations = {}
 
     # Get all conversations for the sidebar
     conversations = get_all_conversations(username)
@@ -109,6 +109,7 @@ def chat_interface(assistant, username):
             new_id = create_new_conversation(username)
             st.session_state.current_conversation_id = new_id
             st.session_state.messages = []
+            st.session_state.conversations[new_id] = {"optimized_prompt": None}
             st.rerun()
 
         for conv in conversations:
@@ -120,6 +121,8 @@ def chat_interface(assistant, username):
             if col1.button(conv_name, key=f"conv_{conv_id}"):
                 st.session_state.current_conversation_id = conv_id
                 st.session_state.messages = get_conversation(username, conv_id)
+                if conv_id not in st.session_state.conversations:
+                    st.session_state.conversations[conv_id] = {"optimized_prompt": None}
                 st.rerun()
             
             if col2.button("✏️ Rename", key=f"rename_{conv_id}"):
@@ -146,29 +149,36 @@ def chat_interface(assistant, username):
     # Display chat messages
     display_chat_messages(username)
 
-    # Add button for generating top-down view prompt
-    if st.button("Generate Top-Down View Prompt"):
-        with st.spinner("Generating optimized prompt..."):
-            optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
-            if optimized_prompt:
-                st.session_state.optimized_prompt = optimized_prompt
-                st.success("Optimized prompt generated!")
-            else:
-                st.error("Failed to generate optimized prompt.")
+    current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
 
-    # Display and allow editing of the optimized prompt
-    if st.session_state.optimized_prompt:
-        edited_prompt = st.text_area("Edit the optimized prompt:", value=st.session_state.optimized_prompt, height=200)
-        
-        if st.button("Generate Images"):
-            with st.spinner("Generating top-down view images..."):
-                image_urls = generate_images_from_prompt(edited_prompt)
-                if image_urls:
-                    for i, url in enumerate(image_urls, 1):
-                        st.image(url, caption=f"Generated Top-Down View {i}")
-                        st.markdown(f"[Download Image {i}]({url})")
+    # Add an expander for image generation features
+    with st.expander("Image Generation", expanded=current_conv_state["optimized_prompt"] is not None):
+        if st.button("Generate Top-Down View Prompt"):
+            with st.spinner("Generating optimized prompt..."):
+                optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
+                if optimized_prompt:
+                    current_conv_state["optimized_prompt"] = optimized_prompt
+                    st.success("Optimized prompt generated!")
                 else:
-                    st.error("Failed to generate top-down view images.")
+                    st.error("Failed to generate optimized prompt.")
+
+        # Display and allow editing of the optimized prompt
+        if current_conv_state["optimized_prompt"]:
+            col1, col2 = st.columns([5, 1])
+            edited_prompt = col1.text_area("Edit the optimized prompt:", value=current_conv_state["optimized_prompt"], height=100)
+            if col2.button("Close"):
+                current_conv_state["optimized_prompt"] = None
+                st.rerun()
+            
+            if st.button("Generate Images"):
+                with st.spinner("Generating top-down view images..."):
+                    image_urls = generate_images_from_prompt(edited_prompt)
+                    if image_urls:
+                        for i, url in enumerate(image_urls, 1):
+                            st.image(url, caption=f"Generated Top-Down View {i}")
+                            st.markdown(f"[Download Image {i}]({url})")
+                    else:
+                        st.error("Failed to generate top-down view images.")
 
     # Chat input
     handle_chat_input(assistant, username)
@@ -200,6 +210,9 @@ def handle_delete(username, conversations):
                 if st.session_state.current_conversation_id == st.session_state.deleting_conversation:
                     st.session_state.current_conversation_id = create_new_conversation(username)
                     st.session_state.messages = []
+                # Clear the conversation state
+                if st.session_state.deleting_conversation in st.session_state.conversations:
+                    del st.session_state.conversations[st.session_state.deleting_conversation]
                 st.session_state.deleting_conversation = None
                 st.rerun()
             else:
