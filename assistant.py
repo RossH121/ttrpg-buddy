@@ -8,6 +8,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import logging
 import re
+from image_generator import generate_battlemap
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -87,6 +88,11 @@ def cleanup_response(response):
     
     return cleaned
 
+def generate_battlemap_from_context(messages):
+    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
+    prompt = f"Based on this context, create a battlemap: {context}"
+    return generate_battlemap(prompt)
+
 def chat_interface(assistant, username):
     # Initialize session state variables
     if "current_conversation_id" not in st.session_state:
@@ -146,6 +152,16 @@ def chat_interface(assistant, username):
 
     # Display chat messages
     display_chat_messages(username)
+
+    # Add button for generating battlemaps
+    if st.button("Generate Battlemap"):
+        with st.spinner("Generating battlemap..."):
+            image_url = generate_battlemap_from_context(st.session_state.messages)
+            if image_url:
+                st.image(image_url, caption="Generated Battlemap")
+                st.markdown(f"[Download Battlemap]({image_url})")
+            else:
+                st.error("Failed to generate battlemap.")
 
     # Chat input
     handle_chat_input(assistant, username)

@@ -3,6 +3,7 @@ import yaml
 from yaml.loader import SafeLoader
 from auth import initialize_auth, handle_authentication, handle_account_settings
 from assistant import initialize_pinecone, get_assistant, chat_interface
+from image_generator import initialize_openai
 
 def main():
     st.title("Chat with TTRPG Buddy")
@@ -23,11 +24,14 @@ def main():
     pinecone_instance = initialize_pinecone()
     assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
 
+    # Initialize OpenAI
+    openai_instance = initialize_openai()
+
     # Main chat interface
-    if assistant:
+    if assistant and openai_instance:
         chat_interface(assistant, username)
     else:
-        st.error("Assistant not initialized. Chat functionality is unavailable.")
+        st.error("Assistant or OpenAI not initialized. Chat functionality is unavailable.")
 
     # Account settings
     handle_account_settings(authenticator)
