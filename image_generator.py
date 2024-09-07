@@ -24,22 +24,22 @@ def generate_battlemaps(prompt):
         return None
 
     try:
-        # First, use GPT-4 to parse and summarize the prompt
-        summary_response = client.chat.completions.create(
-            model="gpt-4o",
+        # First, use GPT-4 to create an optimal text-to-image prompt
+        prompt_response = client.chat.completions.create(
+            model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that summarizes battle map descriptions for a text-to-image AI. Provide a concise summary in 50 words or less."},
-                {"role": "user", "content": f"Summarize this battle map description in 50 words or less: {prompt}"}
+                {"role": "system", "content": "You are an expert at creating perfect prompts for text-to-image AI. Your task is to create a detailed, vivid prompt for generating a top-down view image. Focus on describing the scene, layout, objects, colors, and atmosphere. Do not mention 'battle map' or 'RPG' explicitly. Aim for a 50-75 word description."},
+                {"role": "user", "content": f"Create an optimal text-to-image prompt for a top-down view based on this description: {prompt}"}
             ]
         )
-        summarized_prompt = summary_response.choices[0].message.content
+        optimized_prompt = prompt_response.choices[0].message.content
 
-        # Now use the summarized prompt to generate 4 images
+        # Now use the optimized prompt to generate 4 images
         image_urls = []
         for i in range(4):
             image_response = client.images.generate(
                 model="dall-e-3",
-                prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}. Variation {i+1}",
+                prompt=f"{optimized_prompt} Ensure this is a top-down view. Variation {i+1}",
                 size="1024x1024",
                 quality="standard",
                 n=1

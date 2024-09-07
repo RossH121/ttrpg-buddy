@@ -79,9 +79,9 @@ def cleanup_response(response):
     
     return cleaned
 
-def generate_battlemap_from_context(messages):
+def generate_topdown_image_from_context(messages):
     context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
-    prompt = f"Based on this context, create a battlemap: {context}"
+    prompt = f"Based on this context, create a detailed top-down view image: {context}"
     return generate_battlemaps(prompt)
 
 def chat_interface(assistant, username):
@@ -144,16 +144,16 @@ def chat_interface(assistant, username):
     # Display chat messages
     display_chat_messages(username)
 
-    # Add button for generating battlemaps
-    if st.button("Generate Battlemaps"):
-        with st.spinner("Generating battlemaps..."):
-            image_urls = generate_battlemap_from_context(st.session_state.messages)
+    # Add button for generating top-down view images
+    if st.button("Generate Top-Down View Images"):
+        with st.spinner("Generating top-down view images..."):
+            image_urls = generate_topdown_image_from_context(st.session_state.messages)
             if image_urls:
                 for i, url in enumerate(image_urls, 1):
-                    st.image(url, caption=f"Generated Battlemap {i}")
-                    st.markdown(f"[Download Battlemap {i}]({url})")
+                    st.image(url, caption=f"Generated Top-Down View {i}")
+                    st.markdown(f"[Download Image {i}]({url})")
             else:
-                st.error("Failed to generate battlemaps.")
+                st.error("Failed to generate top-down view images.")
 
     # Chat input
     handle_chat_input(assistant, username)
