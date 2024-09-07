@@ -1,46 +1,31 @@
 # streamlit_app.py
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-from auth import initialize_auth, handle_authentication, handle_account_settings
-from file_management import file_management_sidebar
-from assistant import initialize_pinecone, get_assistant, chat_interface
 
-def main():
-    st.title("TTRPG Buddy")
+st.set_page_config(
+    page_title="TTRPG Buddy",
+    page_icon="🎲",
+)
 
-    # Load authentication configuration
-    with open('config.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
+st.write("# Welcome to TTRPG Buddy! 👋")
 
-    # Initialize authentication
-    authenticator = initialize_auth(config)
+st.sidebar.success("Select a page above.")
 
-    # Handle authentication
-    username = handle_authentication(authenticator)
-    if not username:
-        return
-
-    # Initialize Pinecone and get the assistant
-    pinecone_instance = initialize_pinecone()
-    assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
-
-    # Main area
-    if assistant:
-        chat_interface(assistant, username)
-    else:
-        st.error("Assistant not initialized. Chat functionality is unavailable.")
-
-    # Sidebar
-    with st.sidebar:
-        file_management_sidebar(assistant)
-
-    # Account settings
-    handle_account_settings(authenticator)
-
-    # Saving config file
-    with open('config.yaml', 'w') as file:
-        yaml.dump(config, file, default_flow_style=False)
-
-if __name__ == "__main__":
-    main()
+st.markdown(
+    """
+    TTRPG Buddy is an AI-powered assistant for tabletop role-playing games.
+    
+    **👈 Select a page from the sidebar** to get started!
+    
+    ### What you can do:
+    - Chat with the AI assistant about your game
+    - Manage your game files
+    - And more!
+    
+    ### How to use:
+    1. Use the 'Chat' page to have conversations with your AI assistant.
+    2. Use the 'File Management' page to upload and manage your game files.
+    3. Navigate between pages using the sidebar on the left.
+    
+    Enjoy your adventure!
+    """
+)
