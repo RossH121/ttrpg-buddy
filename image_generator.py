@@ -26,7 +26,7 @@ def generate_battlemaps(prompt):
     try:
         # First, use GPT-4 to parse and summarize the prompt
         summary_response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes battle map descriptions for a text-to-image AI. Provide a concise summary in 50 words or less."},
                 {"role": "user", "content": f"Summarize this battle map description in 50 words or less: {prompt}"}
