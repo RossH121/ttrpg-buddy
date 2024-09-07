@@ -1,17 +1,12 @@
-# streamlit_app.py
 import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
 from auth import initialize_auth, handle_authentication, handle_account_settings
 from assistant import initialize_pinecone, get_assistant
-
-st.set_page_config(
-    page_title="TTRPG Buddy",
-    page_icon="🎲",
-)
+from file_management import file_management_sidebar
 
 def main():
-    st.title("TTRPG Buddy")
+    st.title("File Management")
 
     # Load authentication configuration
     with open('config.yaml') as file:
@@ -29,29 +24,11 @@ def main():
     pinecone_instance = initialize_pinecone()
     assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
 
-    # Main content
-    st.header("Welcome to TTRPG Buddy")
-    st.write("This application helps you manage your tabletop role-playing games.")
-    
-    st.markdown(
-        """
-        TTRPG Buddy is an AI-powered assistant for tabletop role-playing games.
-        
-        **👈 Select a page from the sidebar** to get started!
-        
-        ### What you can do:
-        - Chat with the AI assistant about your game
-        - Manage your game files
-        - And more!
-        
-        ### How to use:
-        1. Use the 'Chat' page to have conversations with your AI assistant.
-        2. Use the 'File Management' page to upload and manage your game files.
-        3. Navigate between pages using the sidebar on the left.
-        
-        Enjoy your adventure!
-        """
-    )
+    # Main file management interface
+    if assistant:
+        file_management_sidebar(assistant)
+    else:
+        st.error("Assistant not initialized. File management is unavailable.")
 
     # Account settings
     handle_account_settings(authenticator)

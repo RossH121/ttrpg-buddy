@@ -207,7 +207,7 @@ def display_message(username, idx, message):
             st.rerun()
 
 def edit_message(username, idx, message):
-    edited_content = st.text_area("Edit message", value=message["content"], key=f"edit_area_{idx}")
+    edited_content = st.text_area("Edit message", value=message["content"], key=f"edit_area_{idx}", height=400)
     col1, col2 = st.columns(2)
     if col1.button("Save", key=f"save_{idx}"):
         st.session_state.messages[idx]["content"] = edited_content
