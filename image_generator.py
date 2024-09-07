@@ -27,14 +27,25 @@ def generate_battlemap(prompt):
         return None
 
     try:
-        response = client.images.generate(
+        # First, use GPT-4 to parse and summarize the prompt
+        summary_response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes battle map descriptions for a text-to-image AI. Provide a concise summary in 50 words or less."},
+                {"role": "user", "content": f"Summarize this battle map description in 50 words or less: {prompt}"}
+            ]
+        )
+        summarized_prompt = summary_response.choices[0].message.content
+
+        # Now use the summarized prompt to generate the image
+        image_response = client.images.generate(
             model="dall-e-3",
-            prompt=f"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: Create a top-down view battlemap for a tabletop RPG based on this description: {prompt}",
+            prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}",
             size="1024x1024",
             quality="standard",
             n=1
         )
-        return response.data[0].url
+        return image_response.data[0].url
     except Exception as e:
         st.error(f"Error generating image: {str(e)}")
         return None
