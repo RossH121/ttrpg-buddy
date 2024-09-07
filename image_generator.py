@@ -24,9 +24,9 @@ def generate_battlemaps(prompt):
         return None
 
     try:
-        # First, use GPT-4 to create an optimal text-to-image prompt
+        # First, use GPT-4o to create an optimal text-to-image prompt
         prompt_response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are an expert at creating perfect prompts for text-to-image AI. Your task is to create a detailed, vivid prompt for generating a top-down view image. Focus on describing the scene, layout, objects, colors, and atmosphere. Do not mention 'battle map' or 'RPG' explicitly. Aim for a 50-75 word description."},
                 {"role": "user", "content": f"Create an optimal text-to-image prompt for a top-down view based on this description: {prompt}"}
