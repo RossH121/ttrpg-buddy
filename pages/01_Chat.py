@@ -25,10 +25,10 @@ def main():
     assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
 
     # Initialize OpenAI
-    openai_instance = initialize_openai()
+    openai_client = initialize_openai()
 
     # Main chat interface
-    if assistant and openai_instance:
+    if assistant and openai_client:
         chat_interface(assistant, username)
     else:
         st.error("Assistant or OpenAI not initialized. Chat functionality is unavailable.")

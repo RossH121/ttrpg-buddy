@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import os
 import streamlit as st
 
@@ -8,22 +8,22 @@ def initialize_openai():
     if not api_key:
         st.error("OpenAI API key not found. Please set it in your environment variables or Streamlit secrets.")
         return None
-    return openai
+    return OpenAI(api_key=api_key)
 
 def generate_battlemap(prompt):
-    openai_instance = initialize_openai()
-    if not openai_instance:
+    client = initialize_openai()
+    if not client:
         return None
 
     try:
-        response = openai_instance.Image.create(
+        response = client.images.generate(
             model="dall-e-3",
             prompt=f"I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS: Create a top-down view battlemap for a tabletop RPG based on this description: {prompt}",
             size="1024x1024",
             quality="standard",
             n=1
         )
-        return response['data'][0]['url']
+        return response.data[0].url
     except Exception as e:
         st.error(f"Error generating image: {str(e)}")
         return None
