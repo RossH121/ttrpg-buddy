@@ -22,7 +22,7 @@ credentials:
       assistant: dnd5e-assistant
       email: ross.heubner@gmail.com
       failed_login_attempts: 0
-      logged_in: true
+      logged_in: false
       name: Ross Heubner
       password: $2b$12$I2sycvc0T5sXZ6W/1c81l.BaeneYBRd9UsNGz2RSMc8ykWYNbdmEK
 pre-authorized:
