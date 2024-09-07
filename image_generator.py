@@ -8,7 +8,6 @@ def initialize_openai():
     if not api_key:
         st.error("OpenAI API key not found. Please set it in your environment variables or Streamlit secrets.")
         return None
-    openai.api_key = api_key
     return openai
 
 def generate_battlemap(prompt):
