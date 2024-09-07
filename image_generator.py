@@ -18,13 +18,12 @@ def initialize_openai():
         st.error(f"Error initializing OpenAI client: {str(e)}")
         return None
 
-def generate_battlemaps(prompt):
+def generate_optimized_prompt(prompt):
     client = initialize_openai()
     if not client:
         return None
 
     try:
-        # First, use GPT-4o to create an optimal text-to-image prompt
         prompt_response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -32,9 +31,17 @@ def generate_battlemaps(prompt):
                 {"role": "user", "content": f"Create an optimal text-to-image prompt for a top-down view based on this description: {prompt}"}
             ]
         )
-        optimized_prompt = prompt_response.choices[0].message.content
+        return prompt_response.choices[0].message.content
+    except Exception as e:
+        st.error(f"Error generating optimized prompt: {str(e)}")
+        return None
 
-        # Now use the optimized prompt to generate 4 images
+def generate_images_from_prompt(optimized_prompt):
+    client = initialize_openai()
+    if not client:
+        return None
+
+    try:
         image_urls = []
         for i in range(4):
             image_response = client.images.generate(
