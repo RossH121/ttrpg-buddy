@@ -3,6 +3,7 @@ import yaml
 from yaml.loader import SafeLoader
 from auth import initialize_auth, handle_authentication, handle_account_settings
 from assistant import initialize_pinecone, get_assistant, chat_interface
+from image_generator import initialize_openai
 
 def main():
     st.title("Chat with TTRPG Buddy")

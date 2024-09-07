@@ -6,12 +6,8 @@ from pinecone_plugins.assistant.models.chat import Message
 from database import save_conversation, get_conversation, get_all_conversations, create_new_conversation, rename_conversation, delete_conversation
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-import logging
 import re
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from image_generator import generate_optimized_prompt, generate_images_from_prompt
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -37,17 +33,14 @@ def get_api_key():
 def get_assistant(_pinecone_instance, config, username):
     try:
         assistant_name = config['credentials']['usernames'][username]['assistant']
-        logger.info(f"Connecting to assistant: {assistant_name}")
         return _pinecone_instance.assistant.Assistant(assistant_name)
     except Exception as e:
-        logger.error(f"Error connecting to assistant: {e}")
         st.error(f"Error connecting to assistant: {e}")
         return None
 
 def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5, timeout=90):
     def execute_query():
         chat_context = chat_history + [Message(content=query, role="user")]
-        logger.info(f"Sending query to assistant: {query}")
         return assistant.chat_completions(messages=chat_context, stream=True)
 
     for attempt in range(max_retries):
@@ -59,7 +52,6 @@ def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5
                 except TimeoutError:
                     raise Exception(f"Query timed out after {timeout} seconds")
         except Exception as e:
-            logger.error(f"Error querying assistant (attempt {attempt + 1}/{max_retries}): {str(e)}")
             if attempt < max_retries - 1:
                 st.warning(f"Error querying assistant (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
@@ -87,6 +79,11 @@ def cleanup_response(response):
     
     return cleaned
 
+def generate_topdown_image_from_context(messages):
+    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
+    prompt = f"Based on this context, create a detailed top-down view image: {context}"
+    return generate_optimized_prompt(prompt)
+
 def chat_interface(assistant, username):
     # Initialize session state variables
     if "current_conversation_id" not in st.session_state:
@@ -99,6 +96,8 @@ def chat_interface(assistant, username):
         st.session_state.editing_message_index = None
     if "original_message_content" not in st.session_state:
         st.session_state.original_message_content = None
+    if "conversations" not in st.session_state:
+        st.session_state.conversations = {}
 
     # Get all conversations for the sidebar
     conversations = get_all_conversations(username)
@@ -110,6 +109,7 @@ def chat_interface(assistant, username):
             new_id = create_new_conversation(username)
             st.session_state.current_conversation_id = new_id
             st.session_state.messages = []
+            st.session_state.conversations[new_id] = {"optimized_prompt": None}
             st.rerun()
 
         for conv in conversations:
@@ -121,6 +121,8 @@ def chat_interface(assistant, username):
             if col1.button(conv_name, key=f"conv_{conv_id}"):
                 st.session_state.current_conversation_id = conv_id
                 st.session_state.messages = get_conversation(username, conv_id)
+                if conv_id not in st.session_state.conversations:
+                    st.session_state.conversations[conv_id] = {"optimized_prompt": None}
                 st.rerun()
             
             if col2.button("✏️ Rename", key=f"rename_{conv_id}"):
@@ -146,6 +148,37 @@ def chat_interface(assistant, username):
 
     # Display chat messages
     display_chat_messages(username)
+
+    current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
+
+    # Add an expander for image generation features
+    with st.expander("Image Generation", expanded=current_conv_state["optimized_prompt"] is not None):
+        if st.button("Generate Top-Down View Prompt"):
+            with st.spinner("Generating optimized prompt..."):
+                optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
+                if optimized_prompt:
+                    current_conv_state["optimized_prompt"] = optimized_prompt
+                    st.success("Optimized prompt generated!")
+                else:
+                    st.error("Failed to generate optimized prompt.")
+
+        # Display and allow editing of the optimized prompt
+        if current_conv_state["optimized_prompt"]:
+            col1, col2 = st.columns([5, 1])
+            edited_prompt = col1.text_area("Edit the optimized prompt:", value=current_conv_state["optimized_prompt"], height=100)
+            if col2.button("Close"):
+                current_conv_state["optimized_prompt"] = None
+                st.rerun()
+            
+            if st.button("Generate Images"):
+                with st.spinner("Generating top-down view images..."):
+                    image_urls = generate_images_from_prompt(edited_prompt)
+                    if image_urls:
+                        for i, url in enumerate(image_urls, 1):
+                            st.image(url, caption=f"Generated Top-Down View {i}")
+                            st.markdown(f"[Download Image {i}]({url})")
+                    else:
+                        st.error("Failed to generate top-down view images.")
 
     # Chat input
     handle_chat_input(assistant, username)
@@ -177,6 +210,9 @@ def handle_delete(username, conversations):
                 if st.session_state.current_conversation_id == st.session_state.deleting_conversation:
                     st.session_state.current_conversation_id = create_new_conversation(username)
                     st.session_state.messages = []
+                # Clear the conversation state
+                if st.session_state.deleting_conversation in st.session_state.conversations:
+                    del st.session_state.conversations[st.session_state.deleting_conversation]
                 st.session_state.deleting_conversation = None
                 st.rerun()
             else:
@@ -248,7 +284,6 @@ def handle_chat_input(assistant, username):
                             cleaned_response = cleanup_response(full_response)
                             message_placeholder.markdown(cleaned_response + "▌")
             except Exception as e:
-                logger.error(f"Error while streaming response: {str(e)}")
                 st.error(f"Error while streaming response: {str(e)}")
                 return
             
