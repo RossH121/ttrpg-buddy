@@ -26,7 +26,7 @@ def generate_battlemaps(prompt):
     try:
         # First, use GPT-4 to parse and summarize the prompt
         summary_response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that summarizes battle map descriptions for a text-to-image AI. Provide a concise summary in 50 words or less."},
                 {"role": "user", "content": f"Summarize this battle map description in 50 words or less: {prompt}"}
@@ -36,10 +36,10 @@ def generate_battlemaps(prompt):
 
         # Now use the summarized prompt to generate 4 images
         image_urls = []
-        for _ in range(4):
+        for i in range(4):
             image_response = client.images.generate(
                 model="dall-e-3",
-                prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}",
+                prompt=f"Create a top-down view battlemap for a tabletop RPG based on this description: {summarized_prompt}. Variation {i+1}",
                 size="1024x1024",
                 quality="standard",
                 n=1

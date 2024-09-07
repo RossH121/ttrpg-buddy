@@ -80,7 +80,7 @@ def cleanup_response(response):
     return cleaned
 
 def generate_battlemap_from_context(messages):
-    context = " ".join([m["content"] for m in messages[-1:]])
+    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
     prompt = f"Based on this context, create a battlemap: {context}"
     return generate_battlemaps(prompt)
 
@@ -145,14 +145,15 @@ def chat_interface(assistant, username):
     display_chat_messages(username)
 
     # Add button for generating battlemaps
-    if st.button("Generate Battlemap"):
-        with st.spinner("Generating battlemap..."):
-            image_url = generate_battlemap_from_context(st.session_state.messages)
-            if image_url:
-                st.image(image_url, caption="Generated Battlemap")
-                st.markdown(f"[Download Battlemap]({image_url})")
+    if st.button("Generate Battlemaps"):
+        with st.spinner("Generating battlemaps..."):
+            image_urls = generate_battlemap_from_context(st.session_state.messages)
+            if image_urls:
+                for i, url in enumerate(image_urls, 1):
+                    st.image(url, caption=f"Generated Battlemap {i}")
+                    st.markdown(f"[Download Battlemap {i}]({url})")
             else:
-                st.error("Failed to generate battlemap.")
+                st.error("Failed to generate battlemaps.")
 
     # Chat input
     handle_chat_input(assistant, username)
