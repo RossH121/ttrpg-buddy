@@ -2,7 +2,6 @@ import streamlit as st
 import os
 
 def file_management_sidebar(assistant):
-    st.title("File Management")
 
     if assistant:
         # File upload
@@ -42,7 +41,7 @@ def upload_file(assistant, file):
             return False
 
         with st.spinner("Uploading file..."):
-            temp_file_path = f"temp_{file.name}"
+            temp_file_path = f"{file.name}"
             with open(temp_file_path, "wb") as f:
                 f.write(file.getbuffer())
             response = assistant.upload_file(file_path=temp_file_path)
