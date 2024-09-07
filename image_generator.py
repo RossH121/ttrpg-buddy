@@ -8,7 +8,18 @@ def initialize_openai():
     if not api_key:
         st.error("OpenAI API key not found. Please set it in your environment variables or Streamlit secrets.")
         return None
-    return OpenAI(api_key=api_key)
+    
+    # Log the first few characters of the API key for debugging
+    st.write(f"API Key (first 5 chars): {api_key[:5]}...")
+    
+    try:
+        client = OpenAI(api_key=api_key)
+        # Test the API key with a simple request
+        client.models.list()
+        return client
+    except Exception as e:
+        st.error(f"Error initializing OpenAI client: {str(e)}")
+        return None
 
 def generate_battlemap(prompt):
     client = initialize_openai()
