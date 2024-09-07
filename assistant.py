@@ -7,7 +7,7 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_optimized_prompt, generate_images_from_prompt
+from image_generator import generate_optimized_prompt, generate_images_from_prompt, generate_topdown_image_from_context, generate_character_image_from_context
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -78,30 +78,6 @@ def cleanup_response(response):
         cleaned = re.sub(r'\n\d+\.?\s*$', '', cleaned, flags=re.MULTILINE)
     
     return cleaned
-
-def generate_topdown_image_from_context(messages):
-    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
-    prompt = f"Based on this context, create a detailed top-down view image: {context}"
-    return generate_optimized_prompt(prompt)
-
-def generate_character_image_from_context(messages):
-    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
-    prompt = f"""Based on the following context, create a detailed prompt for generating a character portrait image:
-
-Context: {context}
-
-Your prompt should include:
-1. Character's race and class (if applicable)
-2. Physical appearance (face, body type, hair, eyes, skin)
-3. Clothing and armor
-4. Weapons or magical items they might be holding
-5. Character's expression and pose
-6. Any distinctive features or accessories
-7. Background or environment hints (if relevant)
-
-Aim for a vivid, detailed description in about 75-100 words, focusing on visual elements that would make for an interesting and unique character portrait."""
-
-    return generate_optimized_prompt(prompt, is_character=True)
 
 def chat_interface(assistant, username):
     # Initialize session state variables
