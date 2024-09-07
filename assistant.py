@@ -6,13 +6,8 @@ from pinecone_plugins.assistant.models.chat import Message
 from database import save_conversation, get_conversation, get_all_conversations, create_new_conversation, rename_conversation, delete_conversation
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-import logging
 import re
 from image_generator import generate_battlemap
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -38,17 +33,14 @@ def get_api_key():
 def get_assistant(_pinecone_instance, config, username):
     try:
         assistant_name = config['credentials']['usernames'][username]['assistant']
-        logger.info(f"Connecting to assistant: {assistant_name}")
         return _pinecone_instance.assistant.Assistant(assistant_name)
     except Exception as e:
-        logger.error(f"Error connecting to assistant: {e}")
         st.error(f"Error connecting to assistant: {e}")
         return None
 
 def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5, timeout=90):
     def execute_query():
         chat_context = chat_history + [Message(content=query, role="user")]
-        logger.info(f"Sending query to assistant: {query}")
         return assistant.chat_completions(messages=chat_context, stream=True)
 
     for attempt in range(max_retries):
@@ -60,7 +52,6 @@ def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5
                 except TimeoutError:
                     raise Exception(f"Query timed out after {timeout} seconds")
         except Exception as e:
-            logger.error(f"Error querying assistant (attempt {attempt + 1}/{max_retries}): {str(e)}")
             if attempt < max_retries - 1:
                 st.warning(f"Error querying assistant (attempt {attempt + 1}/{max_retries}): {e}. Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
@@ -264,7 +255,6 @@ def handle_chat_input(assistant, username):
                             cleaned_response = cleanup_response(full_response)
                             message_placeholder.markdown(cleaned_response + "▌")
             except Exception as e:
-                logger.error(f"Error while streaming response: {str(e)}")
                 st.error(f"Error while streaming response: {str(e)}")
                 return
             
