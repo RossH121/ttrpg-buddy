@@ -7,7 +7,7 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_optimized_prompt, generate_images_from_prompt
+from image_generator import generate_optimized_prompt, generate_single_image, generate_topdown_image_from_context, generate_character_image_from_context
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -79,11 +79,6 @@ def cleanup_response(response):
     
     return cleaned
 
-def generate_topdown_image_from_context(messages):
-    context = " ".join([m["content"] for m in messages[-5:]])  # Use the last 5 messages for context
-    prompt = f"Based on this context, create a detailed top-down view image: {context}"
-    return generate_optimized_prompt(prompt)
-
 def chat_interface(assistant, username):
     # Initialize session state variables
     if "current_conversation_id" not in st.session_state:
@@ -101,6 +96,13 @@ def chat_interface(assistant, username):
 
     # Get all conversations for the sidebar
     conversations = get_all_conversations(username)
+
+    # Check if the current conversation still exists
+    if st.session_state.current_conversation_id not in [conv["conversation_id"] for conv in conversations]:
+        # If not, create a new conversation
+        st.session_state.current_conversation_id = create_new_conversation(username)
+        st.session_state.messages = []
+        st.session_state.conversations[st.session_state.current_conversation_id] = {"optimized_prompt": None}
 
     # Sidebar for conversation management
     with st.sidebar:
@@ -149,39 +151,62 @@ def chat_interface(assistant, username):
     # Display chat messages
     display_chat_messages(username)
 
-    current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
-
-    # Add an expander for image generation features
-    with st.expander("Image Generation", expanded=current_conv_state["optimized_prompt"] is not None):
-        if st.button("Generate Top-Down View Prompt"):
-            with st.spinner("Generating optimized prompt..."):
-                optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
-                if optimized_prompt:
-                    current_conv_state["optimized_prompt"] = optimized_prompt
-                    st.success("Optimized prompt generated!")
-                else:
-                    st.error("Failed to generate optimized prompt.")
-
-        # Display and allow editing of the optimized prompt
-        if current_conv_state["optimized_prompt"]:
-            col1, col2 = st.columns([5, 1])
-            edited_prompt = col1.text_area("Edit the optimized prompt:", value=current_conv_state["optimized_prompt"], height=100)
-            if col2.button("Close"):
-                current_conv_state["optimized_prompt"] = None
-                st.rerun()
-            
-            if st.button("Generate Images"):
-                with st.spinner("Generating top-down view images..."):
-                    image_urls = generate_images_from_prompt(edited_prompt)
-                    if image_urls:
-                        for i, url in enumerate(image_urls, 1):
-                            st.image(url, caption=f"Generated Top-Down View {i}")
-                            st.markdown(f"[Download Image {i}]({url})")
-                    else:
-                        st.error("Failed to generate top-down view images.")
-
     # Chat input
     handle_chat_input(assistant, username)
+
+    # Image Generation Expander (moved to the bottom)
+    current_conv_state = st.session_state.conversations.get(st.session_state.current_conversation_id, {"optimized_prompt": None})
+    if st.session_state.messages:  # Only show the expander if there are messages in the chat
+        with st.expander("Image Generation", expanded=current_conv_state.get("optimized_prompt") is not None or current_conv_state.get("character_prompt") is not None):
+            col1, col2 = st.columns(2)
+            
+            if col1.button("Generate Top-Down View Prompt"):
+                with st.spinner("Generating optimized prompt for map..."):
+                    optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
+                    if optimized_prompt:
+                        current_conv_state["optimized_prompt"] = optimized_prompt
+                        current_conv_state["prompt_type"] = "map"
+                        st.success("Optimized prompt for map generated!")
+                    else:
+                        st.error("Failed to generate optimized prompt for map. Please ensure there's enough context in the chat.")
+
+            if col2.button("Generate Character Prompt"):
+                with st.spinner("Generating optimized prompt for character..."):
+                    character_prompt = generate_character_image_from_context(st.session_state.messages)
+                    if character_prompt:
+                        current_conv_state["character_prompt"] = character_prompt
+                        current_conv_state["prompt_type"] = "character"
+                        st.success("Optimized prompt for character generated!")
+                    else:
+                        st.error("Failed to generate optimized prompt for character. Please ensure there's enough context in the chat.")
+
+            # Display and allow editing of the optimized prompt
+            if current_conv_state.get("optimized_prompt") or current_conv_state.get("character_prompt"):
+                prompt_type = current_conv_state.get("prompt_type", "map")
+                prompt_key = "optimized_prompt" if prompt_type == "map" else "character_prompt"
+                prompt_title = "Edit the optimized prompt for map:" if prompt_type == "map" else "Edit the optimized prompt for character:"
+                
+                col1, col2 = st.columns([5, 1])
+                edited_prompt = col1.text_area(prompt_title, value=current_conv_state[prompt_key], height=100)
+                if col2.button("Close"):
+                    current_conv_state[prompt_key] = None
+                    current_conv_state["prompt_type"] = None
+                    st.rerun()
+                
+                if st.button(f"Generate {prompt_type.capitalize()} Images"):
+                    progress_bar = st.progress(0)
+                    for i in range(4):
+                        with st.spinner(f"Generating {prompt_type} image {i+1}/4..."):
+                            image_url = generate_single_image(edited_prompt)
+                            if image_url:
+                                st.image(image_url, caption=f"Generated {prompt_type.capitalize()} {i+1}")
+                                st.markdown(f"[Download {prompt_type.capitalize()} Image {i+1}]({image_url})")
+                            else:
+                                st.error(f"Failed to generate {prompt_type} image {i+1}.")
+                        progress_bar.progress((i + 1) / 4)
+                    st.success(f"All {prompt_type} images generated!")
+    else:
+        st.info("Start a conversation to enable image generation features.")
 
 def handle_rename(username, conversations):
     conv_to_rename = next((c for c in conversations if c["conversation_id"] == st.session_state.renaming_conversation), None)
