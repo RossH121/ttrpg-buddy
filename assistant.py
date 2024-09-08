@@ -97,6 +97,13 @@ def chat_interface(assistant, username):
     # Get all conversations for the sidebar
     conversations = get_all_conversations(username)
 
+    # Check if the current conversation still exists
+    if st.session_state.current_conversation_id not in [conv["conversation_id"] for conv in conversations]:
+        # If not, create a new conversation
+        st.session_state.current_conversation_id = create_new_conversation(username)
+        st.session_state.messages = []
+        st.session_state.conversations[st.session_state.current_conversation_id] = {"optimized_prompt": None}
+
     # Sidebar for conversation management
     with st.sidebar:
         st.title("Conversations")
@@ -148,7 +155,7 @@ def chat_interface(assistant, username):
     handle_chat_input(assistant, username)
 
     # Image Generation Expander (moved to the bottom)
-    current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
+    current_conv_state = st.session_state.conversations.get(st.session_state.current_conversation_id, {"optimized_prompt": None})
     if st.session_state.messages:  # Only show the expander if there are messages in the chat
         with st.expander("Image Generation", expanded=current_conv_state.get("optimized_prompt") is not None or current_conv_state.get("character_prompt") is not None):
             col1, col2 = st.columns(2)
