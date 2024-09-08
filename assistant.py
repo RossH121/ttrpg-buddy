@@ -7,7 +7,7 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_optimized_prompt, generate_images_from_prompt, generate_topdown_image_from_context, generate_character_image_from_context
+from image_generator import generate_optimized_prompt, generate_single_image, generate_topdown_image_from_context, generate_character_image_from_context
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -144,9 +144,11 @@ def chat_interface(assistant, username):
     # Display chat messages
     display_chat_messages(username)
 
-    current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
+    # Chat input
+    handle_chat_input(assistant, username)
 
-    # Add an expander for image generation features
+    # Image Generation Expander (moved to the bottom)
+    current_conv_state = st.session_state.conversations[st.session_state.current_conversation_id]
     with st.expander("Image Generation", expanded=current_conv_state.get("optimized_prompt") is not None or current_conv_state.get("character_prompt") is not None):
         col1, col2 = st.columns(2)
         
@@ -184,17 +186,17 @@ def chat_interface(assistant, username):
                 st.rerun()
             
             if st.button(f"Generate {prompt_type.capitalize()} Images"):
-                with st.spinner(f"Generating {prompt_type} images..."):
-                    image_urls = generate_images_from_prompt(edited_prompt)
-                    if image_urls:
-                        for i, url in enumerate(image_urls, 1):
-                            st.image(url, caption=f"Generated {prompt_type.capitalize()} {i}")
-                            st.markdown(f"[Download {prompt_type.capitalize()} Image {i}]({url})")
-                    else:
-                        st.error(f"Failed to generate {prompt_type} images.")
-
-    # Chat input
-    handle_chat_input(assistant, username)
+                progress_bar = st.progress(0)
+                for i in range(4):
+                    with st.spinner(f"Generating {prompt_type} image {i+1}/4..."):
+                        image_url = generate_single_image(edited_prompt)
+                        if image_url:
+                            st.image(image_url, caption=f"Generated {prompt_type.capitalize()} {i+1}")
+                            st.markdown(f"[Download {prompt_type.capitalize()} Image {i+1}]({image_url})")
+                        else:
+                            st.error(f"Failed to generate {prompt_type} image {i+1}.")
+                    progress_bar.progress((i + 1) / 4)
+                st.success(f"All {prompt_type} images generated!")
 
 def handle_rename(username, conversations):
     conv_to_rename = next((c for c in conversations if c["conversation_id"] == st.session_state.renaming_conversation), None)

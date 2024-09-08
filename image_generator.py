@@ -38,25 +38,22 @@ def generate_optimized_prompt(prompt, is_character=False):
         st.error(f"Error generating optimized prompt: {str(e)}")
         return None
 
-def generate_images_from_prompt(optimized_prompt):
+def generate_single_image(optimized_prompt):
     client = initialize_openai()
     if not client:
         return None
 
     try:
-        image_urls = []
-        for i in range(4):
-            image_response = client.images.generate(
-                model="dall-e-3",
-                prompt=f"{optimized_prompt}",
-                size="1024x1024",
-                quality="standard",
-                n=1
-            )
-            image_urls.append(image_response.data[0].url)
-        return image_urls
+        image_response = client.images.generate(
+            model="dall-e-3",
+            prompt=f"{optimized_prompt}",
+            size="1024x1024",
+            quality="standard",
+            n=1
+        )
+        return image_response.data[0].url
     except Exception as e:
-        st.error(f"Error generating images: {str(e)}")
+        st.error(f"Error generating image: {str(e)}")
         return None
 
 def generate_topdown_image_from_context(messages):
