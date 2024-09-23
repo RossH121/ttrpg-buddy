@@ -30,8 +30,6 @@ def initialize_pinecone(max_retries=3, retry_delay=5):
                 return None
 
 def get_api_key():
-    # Load .env file if it exists
-    load_dotenv()
     
     # Check environment variables (including those loaded from .env)
     api_key = os.getenv("PINECONE_API_KEY")
@@ -42,8 +40,6 @@ def get_api_key():
     
     if not api_key:
         st.error("Pinecone API key not found in environment variables, .env file, or Streamlit secrets.")
-    else:
-        st.success("Pinecone API key found successfully.")
     
     return api_key
 

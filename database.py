@@ -6,8 +6,7 @@ from pymongo.server_api import ServerApi
 from datetime import datetime
 
 @st.cache_resource                                                                                                                                                                                       
-def init_connection():                                                                                                                                                                                   
-     # Try to get the URI from environment variables first, then fall back to Streamlit secrets                                                                                                           
+def init_connection():                                                                                                                                                                                                                                                                                             
      uri = os.environ.get("MONGO_URI")                                                                                                                  
      if not uri:                                                                                                                                                                                          
          raise ValueError("MongoDB URI not found in environment variables or Streamlit secrets")                                                                                                          
