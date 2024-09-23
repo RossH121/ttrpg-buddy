@@ -7,6 +7,7 @@ from image_generator import generate_character_image_from_context, generate_sing
 @st.cache_resource
 def initialize_openai():
     api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
         st.error("OpenAI API key not found. Please set it in your environment variables or Streamlit secrets.")
         return None
     
@@ -43,7 +44,7 @@ def generate_npc_json(chat_context):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4",  # Changed from "gpt-4o" to "gpt-4"
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that generates JSON data for NPCs based on chat context."},
                 {"role": "user", "content": prompt}
