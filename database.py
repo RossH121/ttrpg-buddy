@@ -1,13 +1,17 @@
 # database.py
+import os 
 import streamlit as st
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from datetime import datetime
 
-@st.cache_resource
-def init_connection():
-    uri = st.secrets["mongo"]["uri"]
-    return MongoClient(uri, server_api=ServerApi('1'))
+@st.cache_resource                                                                                                                                                                                       
+def init_connection():                                                                                                                                                                                   
+     # Try to get the URI from environment variables first, then fall back to Streamlit secrets                                                                                                           
+     uri = os.environ.get("MONGODB_URI") or st.secrets.get("MONGO_URI")                                                                                                                        
+     if not uri:                                                                                                                                                                                          
+         raise ValueError("MongoDB URI not found in environment variables or Streamlit secrets")                                                                                                          
+     return MongoClient(uri, server_api=ServerApi('1'))
 
 def get_database():
     client = init_connection()

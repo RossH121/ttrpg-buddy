@@ -1,5 +1,0 @@
-The TTRPG Buddy is a generative AI powered application that acts as a collaborator for planning and building tapletop rpg campaigns. It's primary functions are idea generation and collaboration using a RAG system that contains all the relevent content about the core rules of the ttrpg as well as the uplaoded context of the campaign itself and all of the events, characters, environments and storyline of the ongoing campaign.
-
-Using RAG and an LLM the Dungeon Master can iterate on their campaign ideas and the LLM wil support that process in a creative style.
-
-The application contains a file management process, a chat system with conversation history and other generative features.
