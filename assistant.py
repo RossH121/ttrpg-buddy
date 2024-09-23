@@ -29,7 +29,7 @@ def initialize_pinecone(max_retries=3, retry_delay=5):
                 return None
 
 def get_api_key():
-    return os.environ.get("PINECONE_API_KEY") or st.secrets.get("PINECONE_API_KEY")
+    return os.environ.get("PINECONE_API_KEY")
 
 def get_assistant(_pinecone_instance, config, username):
     try:
