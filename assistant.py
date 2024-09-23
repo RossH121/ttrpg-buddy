@@ -15,7 +15,7 @@ from roll20_integration import generate_npc_json, parse_npc_json, generate_roll2
 def initialize_pinecone(max_retries=3, retry_delay=5):
     api_key = get_api_key()
     if not api_key:
-        st.error("Pinecone API key not found. Please set it in your environment variables or Streamlit secrets.")
+        st.error("Pinecone API key not found. Please set it in your environment variables, .env file, or Streamlit secrets.")
         return None
 
     for attempt in range(max_retries):
@@ -30,7 +30,22 @@ def initialize_pinecone(max_retries=3, retry_delay=5):
                 return None
 
 def get_api_key():
-    return os.environ.get("PINECONE_API_KEY")
+    # Load .env file if it exists
+    load_dotenv()
+    
+    # Check environment variables (including those loaded from .env)
+    api_key = os.getenv("PINECONE_API_KEY")
+    
+    # If not found in environment variables, check Streamlit secrets
+    if not api_key:
+        api_key = st.secrets.get("PINECONE_API_KEY")
+    
+    if not api_key:
+        st.error("Pinecone API key not found in environment variables, .env file, or Streamlit secrets.")
+    else:
+        st.success("Pinecone API key found successfully.")
+    
+    return api_key
 
 def get_assistant(_pinecone_instance, config, username):
     try:
