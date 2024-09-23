@@ -6,7 +6,7 @@ from image_generator import generate_character_image_from_context, generate_sing
 
 @st.cache_resource
 def initialize_openai():
-    api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         st.error("OpenAI API key not found. Please set it in your environment variables or Streamlit secrets.")
         return None
