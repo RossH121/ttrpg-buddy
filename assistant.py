@@ -7,7 +7,8 @@ from database import save_conversation, get_conversation, get_all_conversations,
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 import re
-from image_generator import generate_optimized_prompt, generate_single_image, generate_topdown_image_from_context, generate_character_image_from_context
+from image_generator import generate_single_image, generate_topdown_image_from_context, generate_character_image_from_context
+from roll20_integration import generate_npc_json, parse_npc_json, generate_roll20_command
 
 @st.cache_resource
 def initialize_pinecone(max_retries=3, retry_delay=5):
@@ -48,7 +49,9 @@ def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5
             with ThreadPoolExecutor() as executor:
                 future = executor.submit(execute_query)
                 try:
-                    return future.result(timeout=timeout)
+                    result = future.result(timeout=timeout)
+                    # Convert the result to a list of dictionaries
+                    return [{'choices': [{'delta': {'content': chunk.choices[0].delta.content}}]} for chunk in result if chunk.choices]
                 except TimeoutError:
                     raise Exception(f"Query timed out after {timeout} seconds")
         except Exception as e:
@@ -208,6 +211,22 @@ def chat_interface(assistant, username):
     else:
         st.info("Start a conversation to enable image generation features.")
 
+    # Roll20 NPC Command Generation Expander
+    if st.session_state.messages:  # Only show the expander if there are messages in the chat
+        with st.expander("Roll20 NPC Command Generation", expanded=False):
+            if st.button("Generate Roll20 NPC Command"):
+                with st.spinner("Generating NPC data..."):
+                    try:
+                        npc_json = generate_npc_json(st.session_state.messages)
+                        npc_data = parse_npc_json(npc_json)
+                        roll20_command = generate_roll20_command(npc_data)
+                        st.code(roll20_command, language="text")
+                        st.info("Copy this command and paste it into your Roll20 chat to create the NPC.")
+                    except ValueError as e:
+                        st.error(f"Error generating NPC data: {str(e)}")
+                    except Exception as e:
+                        st.error(f"An unexpected error occurred: {str(e)}")
+
 def handle_rename(username, conversations):
     conv_to_rename = next((c for c in conversations if c["conversation_id"] == st.session_state.renaming_conversation), None)
     if conv_to_rename:
@@ -302,12 +321,11 @@ def handle_chat_input(assistant, username):
             
             try:
                 for chunk in response_stream:
-                    if chunk.choices:
-                        content = chunk.choices[0].delta.content
-                        if content:
-                            full_response += content
-                            cleaned_response = cleanup_response(full_response)
-                            message_placeholder.markdown(cleaned_response + "▌")
+                    content = chunk['choices'][0]['delta']['content']
+                    if content:
+                        full_response += content
+                        cleaned_response = cleanup_response(full_response)
+                        message_placeholder.markdown(cleaned_response + "▌")
             except Exception as e:
                 st.error(f"Error while streaming response: {str(e)}")
                 return
