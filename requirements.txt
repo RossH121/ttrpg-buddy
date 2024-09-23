@@ -5,4 +5,5 @@ pinecone-client
 pinecone-plugin-assistant
 pyyaml
 pymongo
+python-dotenv
 requests

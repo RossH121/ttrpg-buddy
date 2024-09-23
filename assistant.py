@@ -1,5 +1,6 @@
 # assistant.py
 import os
+from dotenv import load_dotenv
 import streamlit as st
 import pinecone
 from pinecone_plugins.assistant.models.chat import Message
