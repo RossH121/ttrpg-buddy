@@ -16,19 +16,20 @@ def main():
     authenticator = initialize_auth(config)
 
     # Handle authentication
-    username = handle_authentication(authenticator)
+    username = handle_authentication(authenticator, config)
     if not username:
         return
 
-    # Initialize Pinecone and get the assistant
-    pinecone_instance = initialize_pinecone()
-    assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
+    if username:
+        # Initialize Pinecone and get the assistant
+        pinecone_instance = initialize_pinecone()
+        assistant = get_assistant(pinecone_instance, config, username) if pinecone_instance else None
 
-    # Main file management interface
-    if assistant:
-        file_management_sidebar(assistant)
-    else:
-        st.error("Assistant not initialized. File management is unavailable.")
+        # Main file management interface
+        if assistant:
+            file_management_sidebar(assistant)
+        else:
+            st.error("Assistant not initialized. File management is unavailable.")
 
     # Account settings
     handle_account_settings(authenticator)
