@@ -9,6 +9,7 @@ st.set_page_config(
 )
 
 @st.fragment
+@st.fragment
 def home_content():
     st.header("Welcome to TTRPG Buddy")
     st.write("This application helps you manage your tabletop role-playing games.")

@@ -2,8 +2,43 @@ import streamlit as st
 from auth import handle_authentication, hash_password, verify_password, handle_logout
 from database import get_user, update_user
 
+@st.fragment
+def account_details_section(username):
+    user = get_user(username)
+    new_name = st.text_input("Name", value=user['name'])
+    new_email = st.text_input("Email", value=user['email'])
+    if st.button("Update Details"):
+        if update_user_details(username, new_name, new_email):
+            st.success("Details updated successfully!")
+        else:
+            st.error("Failed to update details. Please try again.")
+
 def update_user_details(username, new_name, new_email):
     return update_user(username, {"name": new_name, "email": new_email})
+
+@st.fragment
+def password_change_section(username):
+    current_password = st.text_input("Current Password", type="password", key="current_password")
+    new_password = st.text_input("New Password", type="password", key="new_password")
+    confirm_password = st.text_input("Confirm New Password", type="password", key="confirm_password")
+    
+    if st.button("Change Password"):
+        if new_password == confirm_password:
+            change_result = change_password(username, current_password, new_password)
+            if change_result == "same_password":
+                st.error("New password cannot be the same as the current password.")
+            elif change_result:
+                st.success("Password changed successfully!")
+                st.session_state.password_just_changed = True
+                st.rerun(scope="fragment")
+            else:
+                st.error("Failed to change password. Please check your current password.")
+        else:
+            st.error("New passwords do not match.")
+
+    # Clear the success message and reset flag after one render
+    if st.session_state.password_just_changed:
+        st.session_state.password_just_changed = False
 
 def change_password(username, current_password, new_password):
     user = get_user(username)
@@ -19,6 +54,18 @@ def change_password(username, current_password, new_password):
 
 def update_message_history_limit(username, limit):
     return update_user(username, {"message_history_limit": limit})
+
+@st.fragment
+def message_history_limit_section(username):
+    user = get_user(username)
+    current_limit = user.get('message_history_limit', 10)  # Default to 10 if not set
+    new_limit = st.slider("Message History Limit", min_value=1, max_value=20, value=current_limit, 
+                          help="Set the number of previous messages to include in the chat history (1-20)")
+    if st.button("Update Message History Limit"):
+        if update_message_history_limit(username, new_limit):
+            st.success(f"Message history limit updated to {new_limit}")
+        else:
+            st.error("Failed to update message history limit. Please try again.")
 
 def main():
     st.title("Account Settings")
@@ -44,53 +91,18 @@ def main():
         st.session_state.password_just_changed = False
     # Account Details Section
     st.header("Account Details")
-    new_name = st.text_input("Name", value=user['name'])
-    new_email = st.text_input("Email", value=user['email'])
-    if st.button("Update Details"):
-        if update_user_details(username, new_name, new_email):
-            st.success("Details updated successfully!")
-        else:
-            st.error("Failed to update details. Please try again.")
+    account_details_section(username)
 
     # Password Change Section
     st.header("Change Password")
-    
-    current_password = st.text_input("Current Password", type="password", key="current_password")
-    new_password = st.text_input("New Password", type="password", key="new_password")
-    confirm_password = st.text_input("Confirm New Password", type="password", key="confirm_password")
-    
-    if st.button("Change Password"):
-        if new_password == confirm_password:
-            change_result = change_password(username, current_password, new_password)
-            if change_result == "same_password":
-                st.error("New password cannot be the same as the current password.")
-            elif change_result:
-                st.success("Password changed successfully!")
-                st.session_state.password_just_changed = True
-                st.rerun()
-            else:
-                st.error("Failed to change password. Please check your current password.")
-        else:
-            st.error("New passwords do not match.")
-
-    # Clear the success message and reset flag after one render
-    if st.session_state.password_just_changed:
-        st.session_state.password_just_changed = False
+    password_change_section(username)
 
     # Assistant Information Section (Placeholder)
     st.header("Assistant Information")
     st.info("Assistant settings will be available in a future update.")
 
     st.header("Chat Settings")
-    user = get_user(username)
-    current_limit = user.get('message_history_limit', 10)  # Default to 10 if not set
-    new_limit = st.slider("Message History Limit", min_value=1, max_value=20, value=current_limit, 
-                          help="Set the number of previous messages to include in the chat history (1-20)")
-    if st.button("Update Message History Limit"):
-        if update_message_history_limit(username, new_limit):
-            st.success(f"Message history limit updated to {new_limit}")
-        else:
-            st.error("Failed to update message history limit. Please try again.")
+    message_history_limit_section(username)
 
     # Logout
     handle_logout()
