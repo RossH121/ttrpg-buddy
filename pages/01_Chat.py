@@ -1,9 +1,6 @@
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-from auth import handle_authentication, handle_account_settings
+from auth import handle_authentication, handle_logout
 from assistant import initialize_pinecone, get_assistant, chat_interface
-from image_generator import initialize_openai
 
 def main():
     st.title("Chat with TTRPG Buddy")
@@ -25,8 +22,8 @@ def main():
         else:
             st.error("Assistant not initialized. Chat functionality is unavailable.")
 
-    # Account settings
-    handle_account_settings()
+    # Logout
+    handle_logout()
 
 if __name__ == "__main__":
     main()

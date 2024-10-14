@@ -1,5 +1,6 @@
 import streamlit as st
-from auth import handle_authentication, hash_password, verify_password
+from auth import handle_authentication, hash_password, verify_password, handle_logout
+from database import get_user, update_user
 from database import get_user, update_user
 
 def update_user_details(username, new_name, new_email):
@@ -16,6 +17,9 @@ def change_password(username, current_password, new_password):
         hashed_new_password = hash_password(new_password)
         return update_user(username, {"password": hashed_new_password})
     return False
+
+def update_message_history_limit(username, limit):
+    return update_user(username, {"message_history_limit": limit})
 
 def main():
     st.title("Account Settings")
@@ -77,6 +81,20 @@ def main():
     # Assistant Information Section (Placeholder)
     st.header("Assistant Information")
     st.info("Assistant settings will be available in a future update.")
+
+    st.header("Chat Settings")
+    user = get_user(username)
+    current_limit = user.get('message_history_limit', 10)  # Default to 10 if not set
+    new_limit = st.slider("Message History Limit", min_value=1, max_value=20, value=current_limit, 
+                          help="Set the number of previous messages to include in the chat history (1-20)")
+    if st.button("Update Message History Limit"):
+        if update_message_history_limit(username, new_limit):
+            st.success(f"Message history limit updated to {new_limit}")
+        else:
+            st.error("Failed to update message history limit. Please try again.")
+
+    # Logout
+    handle_logout()
 
 if __name__ == "__main__":
     main()

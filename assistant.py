@@ -4,10 +4,9 @@ from dotenv import load_dotenv
 import streamlit as st
 import pinecone
 from pinecone_plugins.assistant.models.chat import Message
-from database import save_conversation, get_conversation, get_all_conversations, create_new_conversation, rename_conversation, delete_conversation
+from database import save_conversation, get_conversation, get_all_conversations, create_new_conversation, rename_conversation, delete_conversation, get_user
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-import re
 from image_generator import generate_single_image, generate_topdown_image_from_context, generate_character_image_from_context
 from roll20_integration import generate_npc_json, parse_npc_json, generate_roll20_command
 
@@ -87,19 +86,6 @@ def get_or_create_initial_conversation(username):
     else:
         return create_new_conversation(username)
 
-def cleanup_response(response):
-    # Remove empty numbered lines
-    cleaned = re.sub(r'\n\d+\.\s*$', '', response, flags=re.MULTILINE)
-    
-    # Remove trailing empty lines
-    cleaned = cleaned.rstrip()
-    
-    # If the last non-empty line is a question about what to do next, remove empty numbers after it
-    last_line = cleaned.split('\n')[-1]
-    if "what would you like to do" in last_line.lower() or "what do you want to do" in last_line.lower():
-        cleaned = re.sub(r'\n\d+\.?\s*$', '', cleaned, flags=re.MULTILINE)
-    
-    return cleaned
 
 def chat_interface(assistant, username):
     # Initialize session state variables
@@ -327,9 +313,15 @@ def handle_chat_input(assistant, username):
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        # Get user's message history limit
+        user = get_user(username)
+        message_history_limit = user.get('message_history_limit', 10)  # Default to 10 if not set
+
         # Generate assistant response
         with st.chat_message("assistant"):
-            response_stream = query_assistant(assistant, prompt, [Message(content=m["content"], role=m["role"]) for m in st.session_state.messages])
+            # Limit the chat history sent to the assistant
+            limited_history = st.session_state.messages[-message_history_limit:]
+            response_stream = query_assistant(assistant, prompt, [Message(content=m["content"], role=m["role"]) for m in limited_history])
             
             if isinstance(response_stream, str):  # Error occurred
                 st.error(response_stream)
@@ -343,17 +335,15 @@ def handle_chat_input(assistant, username):
                     content = chunk['choices'][0]['delta']['content']
                     if content:
                         full_response += content
-                        cleaned_response = cleanup_response(full_response)
-                        message_placeholder.markdown(cleaned_response + "▌")
+                        message_placeholder.markdown(full_response + "▌")
             except Exception as e:
                 st.error(f"Error while streaming response: {str(e)}")
                 return
             
-            final_cleaned_response = cleanup_response(full_response)
-            message_placeholder.markdown(final_cleaned_response)
+            message_placeholder.markdown(full_response)
         
         # Add assistant response to chat history
-        st.session_state.messages.append({"role": "assistant", "content": final_cleaned_response})
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
 
         # Save the updated conversation
         save_conversation(username, st.session_state.current_conversation_id, st.session_state.messages)

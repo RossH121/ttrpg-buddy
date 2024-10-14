@@ -1,8 +1,6 @@
 # Home.py
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-from auth import handle_authentication, handle_account_settings
+from auth import handle_authentication, handle_logout
 from assistant import initialize_pinecone, get_assistant
 import logging
 
@@ -52,7 +50,7 @@ def main():
             """
         )
 
-        handle_account_settings()
+        handle_logout()
     else:
         st.warning("Please log in to access TTRPG Buddy")
 

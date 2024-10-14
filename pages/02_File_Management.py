@@ -1,7 +1,5 @@
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
-from auth import handle_authentication, handle_account_settings
+from auth import handle_authentication, handle_logout
 from assistant import initialize_pinecone, get_assistant
 from file_management import file_management_sidebar
 
@@ -24,8 +22,8 @@ def main():
         else:
             st.error("Assistant not initialized. File management is unavailable.")
 
-    # Account settings
-    handle_account_settings()
+    # Logout
+    handle_logout()
 
 if __name__ == "__main__":
     main()

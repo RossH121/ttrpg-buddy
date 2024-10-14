@@ -1,12 +1,11 @@
 import streamlit as st
 from database import (
-    get_user, create_user, update_user,
+    get_user, create_user,
     increment_failed_login_attempts, reset_failed_login_attempts,
     set_user_logged_in
 )
 import bcrypt
 import logging
-import datetime
 from bson.binary import Binary
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -97,10 +96,9 @@ def handle_authentication():
 
     return None
 
-def handle_account_settings():
+def handle_logout():
     if st.session_state.authentication_status:
         with st.sidebar:
-            st.title("⚙️ Account Settings")
             st.write(f'Logged in as: *{st.session_state["name"]}*')
             if st.button("Logout"):
                 logout()
