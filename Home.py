@@ -2,8 +2,12 @@
 import streamlit as st
 import yaml
 from yaml.loader import SafeLoader
-from auth import initialize_auth, handle_authentication, handle_account_settings
+from auth import handle_authentication, handle_account_settings
 from assistant import initialize_pinecone, get_assistant
+import logging
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="TTRPG Buddy",
@@ -11,62 +15,48 @@ st.set_page_config(
 )
 
 def main():
+    logger.debug("Starting main function")
     st.title("TTRPG Buddy")
 
-    # Load authentication configuration
-    with open('config.yaml') as file:
-        config = yaml.load(file, Loader=SafeLoader)
+    logger.debug("Calling handle_authentication")
+    username = handle_authentication()
+    logger.debug(f"Returned username: {username}")
 
-    # Initialize authentication
-    authenticator = initialize_auth(config)
+    if username:
+        logger.info(f"User authenticated: {username}")
+        _pinecone_instance = initialize_pinecone()
+        assistant = get_assistant(_pinecone_instance, username)
+        # Proceed with using the assistant
 
-    # Handle authentication
-    username = handle_authentication(authenticator, config)
-    if not username:
-        return
+        # Main content
+        st.header("Welcome to TTRPG Buddy")
+        st.write("This application helps you manage your tabletop role-playing games.")
 
-    # Sidebar content (only shown when logged in)
-    with st.sidebar:
-        st.title("⚙️ Account Settings")
-        st.write(f'Logged in as: *{st.session_state["name"]}*')
-        if authenticator.logout("Logout", "sidebar"):
-            st.rerun()
+        st.markdown(
+            """
+            TTRPG Buddy is an AI-powered assistant for tabletop role-playing games.
 
-    # Use session state to manage navigation
-    if "redirect_to_home" not in st.session_state:
-        st.session_state.redirect_to_home = True
+            **👈 Select a page from the sidebar** to get started!
 
-    if st.session_state.redirect_to_home:
-        st.session_state.redirect_to_home = False
-        st.rerun()
+            ### What you can do:
+            - Chat with the AI assistant about your game
+            - Manage your game files
+            - And more!
 
-    # Main content
-    st.header("Welcome to TTRPG Buddy")
-    st.write("This application helps you manage your tabletop role-playing games.")
+            ### How to use:
+            1. Use the 'Chat' page to have conversations with your AI assistant.
+            2. Use the 'File Management' page to upload and manage your game files.
+            3. Navigate between pages using the sidebar on the left.
 
-    st.markdown(
-        """
-        TTRPG Buddy is an AI-powered assistant for tabletop role-playing games.
+            Enjoy your adventure!
+            """
+        )
 
-        **👈 Select a page from the sidebar** to get started!
+        handle_account_settings()
+    else:
+        st.warning("Please log in to access TTRPG Buddy")
 
-        ### What you can do:
-        - Chat with the AI assistant about your game
-        - Manage your game files
-        - And more!
-
-        ### How to use:
-        1. Use the 'Chat' page to have conversations with your AI assistant.
-        2. Use the 'File Management' page to upload and manage your game files.
-        3. Navigate between pages using the sidebar on the left.
-
-        Enjoy your adventure!
-        """
-    )
-
-    # Saving config file
-    with open('config.yaml', 'w') as file:
-        yaml.dump(config, file, default_flow_style=False)
+    logger.debug("Main function completed")
 
 if __name__ == "__main__":
     main()

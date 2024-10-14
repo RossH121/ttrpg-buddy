@@ -43,9 +43,16 @@ def get_api_key():
     
     return api_key
 
-def get_assistant(_pinecone_instance, config, username):
+from database import get_user
+
+def get_assistant(_pinecone_instance, username):
     try:
-        assistant_name = config['credentials']['usernames'][username]['assistant']
+        # Fetch user data from MongoDB
+        user = get_user(username)
+        if not user or 'assistant' not in user:
+            raise KeyError("Assistant information not found for the user")
+
+        assistant_name = user['assistant']
         return _pinecone_instance.assistant.Assistant(assistant_name)
     except Exception as e:
         st.error(f"Error connecting to assistant: {e}")
