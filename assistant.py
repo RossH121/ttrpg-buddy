@@ -314,6 +314,9 @@ def edit_message(username, idx, message):
         st.rerun()
 
 def handle_chat_input(assistant, username):
+    if "new_message_added" not in st.session_state:
+        st.session_state.new_message_added = False
+
     if prompt := st.chat_input("What would you like to know about?"):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
@@ -343,3 +346,13 @@ def handle_chat_input(assistant, username):
 
         # Save the updated conversation
         save_conversation(username, st.session_state.current_conversation_id, st.session_state.messages)
+
+        # Set the flag to indicate a new message was added
+        st.session_state.new_message_added = True
+
+        # Force a rerun to display the edit button for the new message
+        st.rerun()
+
+    # Reset the flag after the rerun
+    if st.session_state.new_message_added:
+        st.session_state.new_message_added = False

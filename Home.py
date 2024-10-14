@@ -14,7 +14,6 @@ def main():
     username = handle_authentication()
 
     if username:
-        logger.info(f"User authenticated: {username}")
         _pinecone_instance = initialize_pinecone()
         assistant = get_assistant(_pinecone_instance, username)
         # Proceed with using the assistant

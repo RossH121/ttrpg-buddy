@@ -1,7 +1,6 @@
 import streamlit as st
 from auth import handle_authentication, hash_password, verify_password, handle_logout
 from database import get_user, update_user
-from database import get_user, update_user
 
 def update_user_details(username, new_name, new_email):
     return update_user(username, {"name": new_name, "email": new_email})
