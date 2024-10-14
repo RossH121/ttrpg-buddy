@@ -2,7 +2,6 @@ import json
 from openai import OpenAI
 import os
 import streamlit as st
-from image_generator import generate_character_image_from_context, generate_single_image
 
 @st.cache_resource
 def initialize_openai():
@@ -21,7 +20,10 @@ def initialize_openai():
         return None
 
 def generate_npc_prompt(chat_context):
-    return """Based on the conversation above, create a JSON object representing an NPC with the following fields:
+    # Convert chat_context to a string if it's not already
+    context_str = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_context])
+    
+    return f"""Based on the conversation above, create a JSON object representing an NPC with the following fields:
     name, race, class, level, strength, dexterity, constitution, intelligence, wisdom, charisma,
     actions, background, personality_traits, equipment, skills, languages, appearance.
     If any information is missing, use reasonable defaults. Ensure all ability scores are between 3 and 20.
@@ -33,7 +35,11 @@ def generate_npc_prompt(chat_context):
     Skills should be a list of proficient skills.
     Languages should be a list of languages the NPC speaks.
     Appearance should be a brief description of the NPC's physical characteristics.
-    Only return the JSON object, no other text."""
+    Only return the JSON object, no other text.
+
+    Conversation Context:
+    {context_str}
+    """
 
 def generate_npc_json(chat_context):
     client = initialize_openai()
@@ -44,7 +50,7 @@ def generate_npc_json(chat_context):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4",  # Changed from "gpt-4o" to "gpt-4"
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that generates JSON data for NPCs based on chat context."},
                 {"role": "user", "content": prompt}
@@ -54,13 +60,6 @@ def generate_npc_json(chat_context):
             response_format={"type": "json_object"}
         )
         npc_data = json.loads(response.choices[0].message.content)
-        
-        # Generate character image
-        image_prompt = generate_character_image_from_context(chat_context)
-        if image_prompt:
-            image_url = generate_single_image(image_prompt)
-            if image_url:
-                npc_data['image_url'] = image_url
         
         return json.dumps(npc_data)
     except Exception as e:
