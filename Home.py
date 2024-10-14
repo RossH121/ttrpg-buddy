@@ -2,10 +2,7 @@
 import streamlit as st
 from auth import handle_authentication, handle_logout
 from assistant import initialize_pinecone, get_assistant
-import logging
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="TTRPG Buddy",
@@ -13,12 +10,8 @@ st.set_page_config(
 )
 
 def main():
-    logger.debug("Starting main function")
     st.title("TTRPG Buddy")
-
-    logger.debug("Calling handle_authentication")
     username = handle_authentication()
-    logger.debug(f"Returned username: {username}")
 
     if username:
         logger.info(f"User authenticated: {username}")
@@ -53,8 +46,6 @@ def main():
         handle_logout()
     else:
         st.warning("Please log in to access TTRPG Buddy")
-
-    logger.debug("Main function completed")
 
 if __name__ == "__main__":
     main()

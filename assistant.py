@@ -343,15 +343,3 @@ def handle_chat_input(assistant, username):
 
         # Save the updated conversation
         save_conversation(username, st.session_state.current_conversation_id, st.session_state.messages)
-
-# Debug function to display assistant information
-def debug_assistant_info(assistant):
-    if assistant:
-        st.sidebar.write("Assistant Information:")
-        st.sidebar.write(f"Name: {assistant.name}")
-        st.sidebar.write(f"ID: {assistant.id}")
-    else:
-        st.sidebar.write("Assistant not initialized")
-
-# You can uncomment the following line in chat_interface to use the debug function
-# debug_assistant_info(assistant)

@@ -5,11 +5,8 @@ from database import (
     set_user_logged_in
 )
 import bcrypt
-import logging
 from bson.binary import Binary
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
 def initialize_auth():
     if "authentication_status" not in st.session_state:
