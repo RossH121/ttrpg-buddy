@@ -95,91 +95,87 @@ def get_or_create_initial_conversation(username):
     else:
         return create_new_conversation(username)
 
-
-def chat_interface(assistant, username):
-    # Initialize session state variables
-    if "current_conversation_id" not in st.session_state:
-        st.session_state.current_conversation_id = get_or_create_initial_conversation(username)
-    if "renaming_conversation" not in st.session_state:
-        st.session_state.renaming_conversation = None
-    if "deleting_conversation" not in st.session_state:
-        st.session_state.deleting_conversation = None
-    if "editing_message_index" not in st.session_state:
-        st.session_state.editing_message_index = None
-    if "original_message_content" not in st.session_state:
-        st.session_state.original_message_content = None
-    if "conversations" not in st.session_state:
-        st.session_state.conversations = {}
-
-    # Get all conversations for the sidebar
+@st.fragment
+def conversation_management(username):
     conversations = get_all_conversations(username)
-
-    # Check if the current conversation still exists
-    if st.session_state.current_conversation_id not in [conv["conversation_id"] for conv in conversations]:
-        # If not, create a new conversation
-        st.session_state.current_conversation_id = create_new_conversation(username)
+    
+    st.title("Conversations")
+    if st.button("New Conversation"):
+        new_id = create_new_conversation(username)
+        st.session_state.current_conversation_id = new_id
         st.session_state.messages = []
-        st.session_state.conversations[st.session_state.current_conversation_id] = {"optimized_prompt": None}
+        st.session_state.conversations[new_id] = {"optimized_prompt": None}
+        st.rerun()
 
-    # Sidebar for conversation management
-    with st.sidebar:
-        st.title("Conversations")
-        if st.button("New Conversation"):
-            new_id = create_new_conversation(username)
-            st.session_state.current_conversation_id = new_id
-            st.session_state.messages = []
-            st.session_state.conversations[new_id] = {"optimized_prompt": None}
+    for conv in conversations:
+        conv_id = conv["conversation_id"]
+        conv_name = conv.get("name", f"Conversation {conv['created_at'].strftime('%Y-%m-%d %H:%M')}")
+        
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
+        if col1.button(conv_name, key=f"conv_{conv_id}"):
+            st.session_state.current_conversation_id = conv_id
+            st.session_state.messages = get_conversation(username, conv_id)
+            if conv_id not in st.session_state.conversations:
+                st.session_state.conversations[conv_id] = {"optimized_prompt": None}
+            st.rerun()
+        
+        if col2.button("✏️ Rename", key=f"rename_{conv_id}"):
+            st.session_state.renaming_conversation = conv_id
+            st.session_state.cancel_rename = False
             st.rerun()
 
-        for conv in conversations:
-            conv_id = conv["conversation_id"]
-            conv_name = conv.get("name", f"Conversation {conv['created_at'].strftime('%Y-%m-%d %H:%M')}")
-            
-            col1, col2, col3 = st.columns([3, 1, 1])
-            
-            if col1.button(conv_name, key=f"conv_{conv_id}"):
-                st.session_state.current_conversation_id = conv_id
-                st.session_state.messages = get_conversation(username, conv_id)
-                if conv_id not in st.session_state.conversations:
-                    st.session_state.conversations[conv_id] = {"optimized_prompt": None}
-                st.rerun()
-            
-            if col2.button("✏️ Rename", key=f"rename_{conv_id}"):
-                st.session_state.renaming_conversation = conv_id
-            
-            if col3.button("🗑️ Delete", key=f"delete_{conv_id}"):
-                st.session_state.deleting_conversation = conv_id
+        if col3.button("🗑️ Delete", key=f"delete_{conv_id}"):
+            st.session_state.deleting_conversation = conv_id
+            st.session_state.cancel_delete = False
+            st.rerun()
 
         # Handle renaming
-        if st.session_state.renaming_conversation:
-            handle_rename(username, conversations)
+        if st.session_state.renaming_conversation == conv_id and not st.session_state.cancel_rename:
+            new_name = st.text_input("New name", value=conv_name, key=f"new_name_{conv_id}")
+            col1, col2 = st.columns(2)
+            if col1.button("Confirm Rename", key=f"confirm_rename_{conv_id}"):
+                if rename_conversation(username, conv_id, new_name):
+                    st.success("Conversation renamed successfully!")
+                    st.session_state.renaming_conversation = None
+                    st.rerun()
+                else:
+                    st.error("Failed to rename conversation.")
+            if col2.button("Cancel Rename", key=f"cancel_rename_{conv_id}"):
+                st.session_state.renaming_conversation = None
+                st.session_state.cancel_rename = True
+                st.rerun()
 
         # Handle deleting
-        if st.session_state.deleting_conversation:
-            handle_delete(username, conversations)
+        if st.session_state.deleting_conversation == conv_id and not st.session_state.cancel_delete:
+            st.warning(f"Are you sure you want to delete '{conv_name}'?")
+            col1, col2 = st.columns(2)
+            if col1.button("Confirm Delete", key=f"confirm_delete_{conv_id}"):
+                if delete_conversation(username, conv_id):
+                    st.success("Conversation deleted successfully!")
+                    if st.session_state.current_conversation_id == conv_id:
+                        st.session_state.current_conversation_id = create_new_conversation(username)
+                        st.session_state.messages = []
+                    if conv_id in st.session_state.conversations:
+                        del st.session_state.conversations[conv_id]
+                    st.session_state.deleting_conversation = None
+                    st.rerun()
+                else:
+                    st.error("Failed to delete conversation.")
+            if col2.button("Cancel Delete", key=f"cancel_delete_{conv_id}"):
+                st.session_state.deleting_conversation = None
+                st.session_state.cancel_delete = True
+                st.rerun()
 
-    # Initialize chat history from database
-    if "messages" not in st.session_state:
-        st.session_state.messages = get_conversation(username, st.session_state.current_conversation_id)
-
-    # Display current conversation name
-    display_current_conversation(conversations)
-
-    # Display chat messages
-    display_chat_messages(username)
-
-    # Chat input
-    handle_chat_input(assistant, username)
-
-    # Image Generation Expander (moved to the bottom)
-    current_conv_state = st.session_state.conversations.get(st.session_state.current_conversation_id, {"optimized_prompt": None})
-    if st.session_state.messages:  # Only show the expander if there are messages in the chat
+@st.fragment
+def image_generation_section(messages, current_conv_state):
+    if messages:
         with st.expander("Image Generation", expanded=current_conv_state.get("optimized_prompt") is not None or current_conv_state.get("character_prompt") is not None):
             col1, col2 = st.columns(2)
             
             if col1.button("Generate Top-Down View Prompt"):
                 with st.spinner("Generating optimized prompt for map..."):
-                    optimized_prompt = generate_topdown_image_from_context(st.session_state.messages)
+                    optimized_prompt = generate_topdown_image_from_context(messages)
                     if optimized_prompt:
                         current_conv_state["optimized_prompt"] = optimized_prompt
                         current_conv_state["prompt_type"] = "map"
@@ -189,7 +185,7 @@ def chat_interface(assistant, username):
 
             if col2.button("Generate Character Prompt"):
                 with st.spinner("Generating optimized prompt for character..."):
-                    character_prompt = generate_character_image_from_context(st.session_state.messages)
+                    character_prompt = generate_character_image_from_context(messages)
                     if character_prompt:
                         current_conv_state["character_prompt"] = character_prompt
                         current_conv_state["prompt_type"] = "character"
@@ -225,13 +221,14 @@ def chat_interface(assistant, username):
     else:
         st.info("Start a conversation to enable image generation features.")
 
-    # Roll20 NPC Command Generation Expander
-    if st.session_state.messages:  # Only show the expander if there are messages in the chat
+@st.fragment
+def roll20_npc_command_section(messages):
+    if messages:
         with st.expander("Roll20 NPC Command Generation", expanded=False):
             if st.button("Generate Roll20 NPC Command"):
                 with st.spinner("Generating NPC data..."):
                     try:
-                        npc_json = generate_npc_json(st.session_state.messages)
+                        npc_json = generate_npc_json(messages)
                         npc_data = parse_npc_json(npc_json)
                         roll20_command = generate_roll20_command(npc_data)
                         st.code(roll20_command, language="text")
@@ -241,43 +238,46 @@ def chat_interface(assistant, username):
                     except Exception as e:
                         st.error(f"An unexpected error occurred: {str(e)}")
 
-def handle_rename(username, conversations):
-    conv_to_rename = next((c for c in conversations if c["conversation_id"] == st.session_state.renaming_conversation), None)
-    if conv_to_rename:
-        new_name = st.text_input("New name", value=conv_to_rename.get("name", ""))
-        col1, col2 = st.columns(2)
-        if col1.button("Confirm Rename"):
-            if rename_conversation(username, st.session_state.renaming_conversation, new_name):
-                st.success("Conversation renamed successfully!")
-                st.session_state.renaming_conversation = None
-                st.rerun()
-            else:
-                st.error("Failed to rename conversation.")
-        if col2.button("Cancel Rename"):
-            st.session_state.renaming_conversation = None
-            st.rerun()
+def chat_interface(assistant, username):
+    #Initialize session state variables
+    if "current_conversation_id" not in st.session_state:
+        st.session_state.current_conversation_id = get_or_create_initial_conversation(username)
+    if "renaming_conversation" not in st.session_state:
+        st.session_state.renaming_conversation = None
+    if "deleting_conversation" not in st.session_state:
+        st.session_state.deleting_conversation = None
+    if "editing_message_index" not in st.session_state:
+        st.session_state.editing_message_index = None
+    if "original_message_content" not in st.session_state:
+        st.session_state.original_message_content = None
+    if "conversations" not in st.session_state:
+        st.session_state.conversations = {}
+    if "messages" not in st.session_state:
+        st.session_state.messages = get_conversation(username, st.session_state.current_conversation_id)
+    if "cancel_rename" not in st.session_state:
+        st.session_state.cancel_rename = False
+    if "cancel_delete" not in st.session_state:
+        st.session_state.cancel_delete = False
 
-def handle_delete(username, conversations):
-    conv_to_delete = next((c for c in conversations if c["conversation_id"] == st.session_state.deleting_conversation), None)
-    if conv_to_delete:
-        st.warning(f"Are you sure you want to delete '{conv_to_delete.get('name', 'this conversation')}'?")
-        col1, col2 = st.columns(2)
-        if col1.button("Confirm Delete"):
-            if delete_conversation(username, st.session_state.deleting_conversation):
-                st.success("Conversation deleted successfully!")
-                if st.session_state.current_conversation_id == st.session_state.deleting_conversation:
-                    st.session_state.current_conversation_id = create_new_conversation(username)
-                    st.session_state.messages = []
-                # Clear the conversation state
-                if st.session_state.deleting_conversation in st.session_state.conversations:
-                    del st.session_state.conversations[st.session_state.deleting_conversation]
-                st.session_state.deleting_conversation = None
-                st.rerun()
-            else:
-                st.error("Failed to delete conversation.")
-        if col2.button("Cancel Delete"):
-            st.session_state.deleting_conversation = None
-            st.rerun()
+    # Sidebar for conversation management
+    with st.sidebar:
+        conversation_management(username)
+
+    # Display current conversation name
+    display_current_conversation(get_all_conversations(username))
+
+    # Display chat messages
+    display_chat_messages(username)
+
+    # Chat input
+    handle_chat_input(assistant, username)
+
+    # Image Generation Section
+    current_conv_state = st.session_state.conversations.get(st.session_state.current_conversation_id, {"optimized_prompt": None})
+    image_generation_section(st.session_state.messages, current_conv_state)
+
+    # Roll20 NPC Command Generation Section
+    roll20_npc_command_section(st.session_state.messages)
 
 def display_current_conversation(conversations):
     current_conv = next((conv for conv in conversations if conv["conversation_id"] == st.session_state.current_conversation_id), None)
@@ -298,7 +298,7 @@ def display_message(username, idx, message):
         if st.button("Edit", key=f"edit_{idx}"):
             st.session_state.editing_message_index = idx
             st.session_state.original_message_content = message["content"]
-            st.rerun()
+            st.rerun()  # Trigger a rerun to immediately show the edit form
 
 def edit_message(username, idx, message):
     edited_content = st.text_area("Edit message", value=message["content"], key=f"edit_area_{idx}", height=400)
@@ -308,51 +308,30 @@ def edit_message(username, idx, message):
         st.session_state.messages[idx]["edited"] = True
         save_conversation(username, st.session_state.current_conversation_id, st.session_state.messages)
         st.session_state.editing_message_index = None
-        st.rerun()
+        st.rerun()  # Trigger a rerun to update the UI after saving
     if col2.button("Cancel", key=f"cancel_{idx}"):
         st.session_state.editing_message_index = None
-        st.rerun()
+        st.rerun()  # Trigger a rerun to update the UI after canceling
 
 def handle_chat_input(assistant, username):
-    if "new_message_added" not in st.session_state:
-        st.session_state.new_message_added = False
-
     if prompt := st.chat_input("What would you like to know about?"):
-        # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # Display user message
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Get user's message history limit
         user = get_user(username)
-        message_history_limit = user.get('message_history_limit', 10)  # Default to 10 if not set
+        message_history_limit = user.get('message_history_limit', 10)
 
-        # Generate assistant response
         with st.chat_message("assistant"):
-            # Limit the chat history sent to the assistant
             limited_history = st.session_state.messages[-message_history_limit:]
             response_stream = query_assistant(assistant, prompt, [Message(content=m["content"], role=m["role"]) for m in limited_history])
             
-            if isinstance(response_stream, str):  # Error occurred
+            if isinstance(response_stream, str):
                 st.error(response_stream)
                 return
 
             full_response = st.write_stream(response_stream_processor(response_stream))
         
-        # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": full_response})
-
-        # Save the updated conversation
         save_conversation(username, st.session_state.current_conversation_id, st.session_state.messages)
-
-        # Set the flag to indicate a new message was added
-        st.session_state.new_message_added = True
-
-        # Force a rerun to display the edit button for the new message
-        st.rerun()
-
-    # Reset the flag after the rerun
-    if st.session_state.new_message_added:
-        st.session_state.new_message_added = False

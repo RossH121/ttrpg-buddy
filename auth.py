@@ -96,6 +96,7 @@ def handle_authentication():
 def handle_logout():
     if st.session_state.authentication_status:
         with st.sidebar:
+            st.divider()
             st.write(f'Logged in as: *{st.session_state["name"]}*')
             if st.button("Logout"):
                 logout()
