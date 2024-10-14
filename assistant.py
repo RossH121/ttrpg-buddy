@@ -68,8 +68,7 @@ def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5
                 future = executor.submit(execute_query)
                 try:
                     result = future.result(timeout=timeout)
-                    # Convert the result to a list of dictionaries
-                    return [{'choices': [{'delta': {'content': chunk.choices[0].delta.content}}]} for chunk in result if chunk.choices]
+                    return result  # This is now a generator
                 except TimeoutError:
                     raise Exception(f"Query timed out after {timeout} seconds")
         except Exception as e:
@@ -78,6 +77,16 @@ def query_assistant(assistant, query, chat_history, max_retries=3, retry_delay=5
                 time.sleep(retry_delay)
             else:
                 return f"Error querying assistant after {max_retries} attempts: {str(e)}"
+
+def response_stream_processor(stream):
+    full_response = ""
+    for chunk in stream:
+        if chunk.choices:
+            content = chunk.choices[0].delta.content
+            if content:
+                full_response += content
+                yield content
+    return full_response
 
 def get_or_create_initial_conversation(username):
     conversations = get_all_conversations(username)
@@ -327,20 +336,7 @@ def handle_chat_input(assistant, username):
                 st.error(response_stream)
                 return
 
-            message_placeholder = st.empty()
-            full_response = ""
-            
-            try:
-                for chunk in response_stream:
-                    content = chunk['choices'][0]['delta']['content']
-                    if content:
-                        full_response += content
-                        message_placeholder.markdown(full_response + "▌")
-            except Exception as e:
-                st.error(f"Error while streaming response: {str(e)}")
-                return
-            
-            message_placeholder.markdown(full_response)
+            full_response = st.write_stream(response_stream_processor(response_stream))
         
         # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": full_response})
