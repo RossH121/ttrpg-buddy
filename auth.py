@@ -6,6 +6,10 @@ from database import (
 )
 import bcrypt
 from bson.binary import Binary
+from datetime import datetime, timedelta
+
+# Set session duration to 7 days
+SESSION_DURATION = timedelta(days=7)
 
 
 def initialize_auth():
@@ -15,6 +19,8 @@ def initialize_auth():
         st.session_state.name = None
     if "username" not in st.session_state:
         st.session_state.username = None
+    if "login_time" not in st.session_state:
+        st.session_state.login_time = None
 
 def hash_password(password):
     return Binary(bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()))
@@ -27,11 +33,17 @@ def login(username, password):
     if user and verify_password(password, user['password']):
         reset_failed_login_attempts(username)
         set_user_logged_in(username, True)
+        st.session_state.login_time = datetime.now()
         return user['name'], True, username
     else:
         if user:
             increment_failed_login_attempts(username)
         return None, False, None
+
+def is_session_valid():
+    if st.session_state.login_time:
+        return datetime.now() - st.session_state.login_time < SESSION_DURATION
+    return False
 
 def logout():
     for key in ['authentication_status', 'name', 'username']:
@@ -50,7 +62,11 @@ def handle_authentication():
     initialize_auth()
 
     if st.session_state.authentication_status:
-        return st.session_state.username
+        if is_session_valid():
+            return st.session_state.username
+        else:
+            logout()
+            st.warning("Your session has expired. Please log in again.")
 
     tabs = st.tabs(["Login", "Register"])
 
